@@ -1,5 +1,6 @@
 # Virtual Environments
 venv*
+.vscode/
 
 # Data
 data/
