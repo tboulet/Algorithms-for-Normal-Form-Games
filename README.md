@@ -1,59 +1,28 @@
-# research-project-template
-A template repository, for the objective of combining research and good code practice. It focuses on code structure, modularity, configuration system (Hydra) and logging (tensorboard and WandB)
+# Algorithms for Normal Form Games
 
-# Repository structure
-The repository is structured as follows. Each point is detailed below.
-```
-├── README.md        <- The top-level README for developers using this project
-├── configs         <- Configuration files for Hydra. The subtree is detailed below
-│ ├─ solver        <- Configuration files for the solver (algorithms? models?, agents?)
-│ ├─ task          <- Configuration files for the task (environments?, datasets?)
-│ ├─ config_default.yaml  <- Default configuration file
-│ └─ personal_config.yaml   <- Your personal configuration file, ignored by git and that you can change as you wish for debugging
-├── src             <- Source code for use in this project
-├── data            <- Data folder, ignored by git
-├── logs           <- Logs folder, ignored by git (tensorboard, wandb, CSVs, ...)
-├── venv           <- Virtual environment folder, ignored by git
-├── requirements.txt  <- The requirements file for reproducing the analysis environment
-├── LICENSE        <- License file
-├── run.py         <- Main script to run the code
-└── personal_files <- Personal files, ignored by git (e.g. notes, debugging test scripts, ...)
-```
+This is a research repository for doing research on MARL algorithms for Normal Form Games. It is based on OpenSpiel and PyTorch.
 
-# Virtual environment
+## Installation
 
-For the sake of reproducibility, and to avoid conflicts with other projects, it is recommended to use a virtual environment. 
+For the installation, you will need to install OpenSpiel and some stuff. You can follow the instructions in the the folder ``docs/install_openspiel.md``. You can access it byu clicking [here](docs/install_openspiel.md).
 
-There are several ways to create a virtual environment. A good one is Virtual Env.
 
-The following commands create a virtual environment named ``./venv/`` and install the requirements.
+## Run the code
+ 
+For training your algorithms on a Normal Form Game, run the following command:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # for linux
-venv\Scripts\activate.bat  # for windows
-pip install -r requirements.txt
+python run_nfg.py algo=iterated_forel game=rps
 ```
 
-# Configuration system : Hydra
+The algo tag should correspond to a configuration in ``configs/algo/`` where you can specify the algo and its hyperparameters. The game tag should correspond to a configuration in ``configs/game/`` where you can specify the game and its hyperparameters.
 
-For a clean way of interacting with the code, it is advised to implement a Command Line Interface (CLI) and a configuration system. A simple approach is to use the ``argparse``, but I suggest to use [Hydra](https://hydra.cc/). Hydra is a framework that allows to easily create a CLI and a configuration system. It is very powerful and flexible, and allows to create a configuration tree.
+We use Hydra as our config system. The config folder is `./configs/`. You can modify the config (logging, metrics, number of training episodes) from the `default_config.yaml` file. You can also create your own config file and specify it with the `--config-name` argument :
 
-# Logging 
+```bash
+python run_nfg.py algo=iterated_forel game=rps --config-name=my_config
+```
 
-Logging is a very important part of a project. It allows to keep track of the experiments, to debug, to compare the results, to reproduce the results, etc.
+Advice : create an alias for the command above this.
 
-### WandB
-WandB is a very powerful tool for logging. It is flexible, logs everything online, can be used to compare experiments or group those by dataset or algorithm, etc. You can also be several people to work on the same project and share the results directly on line. It is also very easy to use, and can be used with a few lines of code.
-
-Cons : it can sometimes be slow to start. It also makes the CTRL+C command buggy sometimes.
-
-### Tensorboard
-Tensorboard is a tool from Tensorflow that allows to visualize the training. It is usefull during the development phase, to check that everything is working as expected. It is also very easy to use, and can be used with a few lines of code.
-
-Cons : it does not log everything online, and it is hard to compare experiments.
-
-### CSV
-CSV files are a simple way to log the results. It is good practice to log the results in a CSV file, be it for using the results later.
-
-Cons : it is hard to compare experiments, and it is not very flexible.
+The available algorithms are in the `algorithms` sub-folder. The available games are simply in the ``configs/game/`` folder, but that may change in the future for more complex games.
