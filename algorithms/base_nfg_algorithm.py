@@ -1,6 +1,8 @@
 from typing import List, Tuple, Any, Callable
 from abc import ABC, abstractmethod
 
+from core.typing import JointPolicy, Policy
+
 
 class BaseNFGAlgorithm(ABC):
     """The base class for any model-free Normal-Form Game solver.
@@ -20,12 +22,8 @@ class BaseNFGAlgorithm(ABC):
     
     @abstractmethod
     def choose_joint_action(self, 
-        game_state,
         ) -> Tuple[List[int], List[float]]:
         """Chooses a joint action for the players.
-
-        Args:
-            game_state (Any): the current state of the game
 
         Returns:
             List[int]: the actions chosen by the players
@@ -35,7 +33,6 @@ class BaseNFGAlgorithm(ABC):
     
     @abstractmethod
     def learn(self,
-        game_state,
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
@@ -43,7 +40,6 @@ class BaseNFGAlgorithm(ABC):
         """Learns from the experience of playing one episode.
 
         Args:
-            game_state (Any): the current state of the game
             joint_actions (List[int]): the joint actions played
             probs (List[float]): the probability of playing the joint action
             rewards (List[float]): the rewards obtained by the players

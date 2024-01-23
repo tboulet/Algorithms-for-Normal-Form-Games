@@ -1,6 +1,5 @@
 # Imports
 from core.utils import to_numeric
-import pyspiel
 
 import datetime
 from typing import Any, List, Callable, Tuple
@@ -16,6 +15,7 @@ JointPolicy = List[Policy]   # if p is of type Policy, then p[i][a] = p_i(a)
 Game = Any
 
 from algorithms import algo_name_to_nfg_solver
+from games import game_name_to_nfg_solver
 
 @hydra.main(config_path="configs", config_name="default_config.yaml")
 def main(config: DictConfig):
@@ -30,7 +30,8 @@ def main(config: DictConfig):
     n_episodes_training = to_numeric(config["n_episodes_training"])
     
     # Get the game
-    game = pyspiel.load_game(game_name)
+    GameClass = game_name_to_nfg_solver[game_name]
+    game = GameClass()
     
     # Initialize the algorithm for learning in that game
     AlgoClass = algo_name_to_nfg_solver[algo_name]
@@ -38,22 +39,15 @@ def main(config: DictConfig):
     algo.initialize_algorithm(game)
     
     for idx_episode_training in range(n_episodes_training):
-        
-        # Initialize an episode
-        state = game.new_initial_state()
-        assert state.is_simultaneous_node(), "The game should be simultaneous"
-        
+                
         # Choose a joint action
-        joint_action, probs = algo.choose_joint_action(game_state=state)
+        joint_action, probs = algo.choose_joint_action()
         
         # Play the joint action and get the rewards
-        state.apply_actions(joint_action)
-        assert state.is_terminal(), "The game should be over"
-        rewards = state.returns()
+        rewards = game.get_rewards(joint_action)
         
         # Learn from the experience
         algo.learn(
-            game_state=state, 
             joint_action=joint_action, 
             probs=probs, 
             rewards=rewards,

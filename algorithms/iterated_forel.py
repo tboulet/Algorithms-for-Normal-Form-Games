@@ -2,11 +2,11 @@ from matplotlib import pyplot as plt
 import numpy as np
 from typing import Any, List, Callable, Tuple
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
+from core.typing import JointPolicy, Policy
 from core.utils import to_numeric
 
 
-Policy = List[float]
-JointPolicy = List[Policy]   # if p is of type Policy, then p[i][a] = p_i(a)
+
 
 class IteratedForel(BaseNFGAlgorithm):
     def __init__(self,
@@ -51,7 +51,6 @@ class IteratedForel(BaseNFGAlgorithm):
         
 
     def choose_joint_action(self,
-        game_state,
         ) -> Tuple[List[int], List[float]]:
         # Choose actions for both players
         chosen_actions = [np.random.choice(self.n_actions, p=self.joint_policy_pi[i]) for i in range(self.n_players)]
@@ -60,7 +59,6 @@ class IteratedForel(BaseNFGAlgorithm):
     
     
     def learn(self,
-        game_state,
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
