@@ -55,3 +55,12 @@ class BaseNFGAlgorithm(ABC):
         """
         pass
     
+    @abstractmethod
+    def get_inference_policies(self,
+        ) -> JointPolicy:
+        """Returns the joint policies used for inference, for evaluation purposes.
+        
+        Returns:
+            JointPolicy: the joint policies used for inference (evaluation)
+        """
+        pass

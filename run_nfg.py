@@ -38,8 +38,22 @@ def main(config: DictConfig):
     algo = AlgoClass(**algo_config)
     algo.initialize_algorithm(game)
     
+    # Create a plot
+    fig, ax = plt.subplots()
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    plt.title('Policies')
+    
     for idx_episode_training in range(n_episodes_training):
-                
+        
+        # Update the policies plot
+        joint_policies_inference = algo.get_inference_policies()
+        ax.clear()
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.scatter(joint_policies_inference[0], joint_policies_inference[1])
+        plt.pause(0.0001)
+        
         # Choose a joint action
         joint_action, probs = algo.choose_joint_action()
         

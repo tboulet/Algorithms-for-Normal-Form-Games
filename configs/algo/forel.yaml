@@ -1,0 +1,4 @@
+algo_name : forel
+algo_config :
+  n_monte_carlo_q_evaluation : 10
+  regularizer : entropy
