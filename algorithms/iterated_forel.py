@@ -4,7 +4,6 @@ from typing import Any, List, Callable, Tuple
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from core.utils import to_numeric
 
-from open_spiel.python import rl_environment
 
 Policy = List[float]
 JointPolicy = List[Policy]   # if p is of type Policy, then p[i][a] = p_i(a)
@@ -86,10 +85,11 @@ class IteratedForel(BaseNFGAlgorithm):
         if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
             self.monte_carlo_q_evaluation_episode_idx = 0
             
-            # Update cumulative values and rest Q values
+            # Update cumulative values and reset Q values
+            lr = 1  # TODO: check if we should use a learning rate
             for i in range(self.n_players):
-                self.joint_cumulative_values[i] += self.joint_q_values[i]
-            self.joint_cumulative_values = np.zeros((self.n_players, self.n_actions))
+                self.joint_cumulative_values[i] += lr * self.joint_q_values[i]
+            self.joint_q_values = np.zeros((self.n_players, self.n_actions))
             
             # Update pi by optimizing the regularized objective function
             for i in range(self.n_players):
