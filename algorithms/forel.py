@@ -11,6 +11,7 @@ from core.utils import to_numeric
 
 class Forel(BaseNFGAlgorithm):
     def __init__(self,
+        q_value_estimation_method : str,
         n_monte_carlo_q_evaluation: int,
         regularizer: str,
     ) -> None:
@@ -19,9 +20,11 @@ class Forel(BaseNFGAlgorithm):
         exploration terms that are the regularizers (e.g. the entropy)
 
         Args:
+            q_value_estimation_method (str): the method used to estimate the Q values (either "mc" or "model-based")
             n_monte_carlo_q_evaluation (int): the number of episodes used to estimate the Q values
             regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
         """
+        self.q_value_estimation_method = q_value_estimation_method
         self.n_monte_carlo_q_evaluation = n_monte_carlo_q_evaluation
         self.regularizer = regularizer
         
@@ -31,6 +34,7 @@ class Forel(BaseNFGAlgorithm):
     def initialize_algorithm(self,
         game: BaseNFGGame,
         ) -> None:
+        self.game = game
         self.n_actions = game.num_distinct_actions()
         self.n_players = game.num_players()
         
@@ -58,14 +62,31 @@ class Forel(BaseNFGAlgorithm):
         
         
         # Update cumulative Q values
-        for i in range(self.n_players):
-            self.joint_q_values[i][joint_action[i]] += rewards[i] / self.n_monte_carlo_q_evaluation  # Q^i_t(a) = Q^i_{t-1}(a) + r^i_t(a) / n_monte_carlo_q_evaluation
-
-        # Increment monte carlo q evaluation episode index
-        self.monte_carlo_q_evaluation_episode_idx += 1
-        if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
-            self.monte_carlo_q_evaluation_episode_idx = 0
+        has_estimated_q_values = False
+        
+        
+        if self.q_value_estimation_method == "mc":
+            # #Method 1 : MC evaluation
+            for i in range(self.n_players):
+                self.joint_q_values[i][joint_action[i]] += rewards[i] / self.n_monte_carlo_q_evaluation  # Q^i_t(a) = Q^i_{t-1}(a) + r^i_t(a) / n_monte_carlo_q_evaluation
+            # Increment monte carlo q evaluation episode index
+            self.monte_carlo_q_evaluation_episode_idx += 1
+            if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
+                self.monte_carlo_q_evaluation_episode_idx = 0
+                has_estimated_q_values = True
+                
+        elif self.q_value_estimation_method == "model-based":
+            # Method 2 : get Q values from the game object (model-based)
+            for i in range(self.n_players):
+                for a in range(self.n_actions):
+                    self.joint_q_values[i][a] = sum([
+                        self.game.get_rewards(joint_action=[a, b])[i] * self.joint_policy_pi[1-i][b]
+                        for b in range(self.n_actions)])
+            has_estimated_q_values = True
             
+        
+        
+        if has_estimated_q_values:
             # Update cumulative values and reset Q values
             lr = 1  # TODO: check if we should use a learning rate
             for i in range(self.n_players):

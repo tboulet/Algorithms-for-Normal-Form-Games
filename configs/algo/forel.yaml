@@ -1,4 +1,5 @@
 algo_name : forel
 algo_config :
+  q_value_estimation_method : model-based
   n_monte_carlo_q_evaluation : 10
   regularizer : entropy
