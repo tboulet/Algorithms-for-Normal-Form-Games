@@ -78,9 +78,12 @@ class Forel(BaseNFGAlgorithm):
             # Method 2 : get Q values from the game object (model-based)
             for i in range(self.n_players):
                 for a in range(self.n_actions):
-                    self.joint_q_values[i][a] = sum([
-                        self.game.get_rewards(joint_action=[a, b])[i] * self.joint_policy_pi[1-i][b]
-                        for b in range(self.n_actions)])
+                    self.joint_q_values[i][a] = self.get_model_based_q_value(
+                                                            game=self.game, 
+                                                            joint_policy=self.joint_policy_pi, 
+                                                            player=i, 
+                                                            action=a,
+                                                            )
             has_estimated_q_values = True
             
         
