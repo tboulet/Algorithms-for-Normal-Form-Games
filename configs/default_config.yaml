@@ -11,7 +11,7 @@ n_episodes_training: 100000
 
 
 defaults:
-  - algo : iterated_forel
+  - algo : iforel
   - game : mp
   - override hydra/hydra_logging: disabled  
   - override hydra/job_logging: disabled 

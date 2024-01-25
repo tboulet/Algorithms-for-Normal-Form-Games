@@ -1,4 +1,4 @@
-algo_name : iterated_forel
+algo_name : iterated_forel_lyapunov
 algo_config :
   n_iterations_max : 10
   n_timesteps_per_iterations : 100
