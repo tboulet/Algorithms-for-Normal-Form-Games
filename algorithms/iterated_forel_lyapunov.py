@@ -53,10 +53,7 @@ class IteratedForel(BaseNFGAlgorithm):
 
     def choose_joint_action(self,
         ) -> Tuple[List[int], List[float]]:
-        # Choose actions for both players
-        chosen_actions = [np.random.choice(self.n_actions, p=self.joint_policy_pi[i]) for i in range(self.n_players)]
-        probs = [self.joint_policy_pi[i][chosen_actions[i]] for i in range(self.n_players)]
-        return chosen_actions, probs
+        return self.sample_joint_action_probs_from_policy(joint_policy=self.joint_policy_pi)
     
     
     def learn(self,
@@ -101,8 +98,6 @@ class IteratedForel(BaseNFGAlgorithm):
             self.timestep += 1
             if self.timestep == self.n_timesteps_per_iterations:
                 self.timestep = 0
-                print(f"Iteration {self.iteration} done")
-                print(f"Policies: {self.joint_policy_pi}")
                 # Set mu policy as the obtained pi policy, reset cumulative values
                 self.iteration += 1
                 self.joint_policy_mu = self.joint_policy_pi.copy()
@@ -124,25 +119,7 @@ class IteratedForel(BaseNFGAlgorithm):
     
     
     
-    # Helper methods
-     
-    def initialize_randomly_joint_policy(self, 
-            n_players : int,
-            n_actions : int,
-            ) -> JointPolicy:
-        """Initializes a joint policy randomly.
-
-        Args:
-            n_players (int): the number of players
-            n_actions (int): the number of actions
-
-        Returns:
-            Policy: the initialized joint policy
-        """
-        joint_policy = np.random.rand(n_players, n_actions)
-        joint_policy = joint_policy / np.sum(joint_policy, axis=1, keepdims=True)
-        return joint_policy
-        
+    # Helper methods        
                     
     def modify_rewards(self, 
                         returns: List[float],
@@ -197,31 +174,3 @@ class IteratedForel(BaseNFGAlgorithm):
         else:
             raise NotImplementedError
             
-
-    def is_similar_enough(self,
-        joint_policy1: JointPolicy,
-        joint_policy2: JointPolicy,
-        threshold: float,
-    ) -> bool:
-        """Checks whether two joint policies are similar enough.
-
-        Args:
-            policy1 (JointPolicy): the first policy
-            policy2 (JointPolicy): the second policy
-            threshold (float): the threshold for the similarity check
-
-        Returns:
-            bool: True if the policies are similar enough, False otherwise
-        """
-        # Implement the similarity check here
-        n_players = len(joint_policy1)
-        n_actions = len(joint_policy1[0])
-        
-        for i in range(n_players):
-            for a in range(n_actions):
-                if abs(joint_policy1[i][a] - joint_policy2[i][a]) > threshold:
-                    return False
-        return True
-    
-    
-    
