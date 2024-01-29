@@ -90,19 +90,27 @@ class Forel(BaseNFGAlgorithm):
         
         if has_estimated_q_values:
             # Update cumulative values and reset Q values
-            lr = 1/np.sqrt(self.timestep + 1)  # TODO: check if we should use a learning rate
+            lr = 1  # TODO: check if we should use a learning rate
             for i in range(self.n_players):
                 self.joint_cumulative_values[i] += lr * self.joint_q_values[i]
-            self.joint_q_values = np.zeros((self.n_players, self.n_actions))
             
             # Update pi by optimizing the regularized objective function
+            # for i in range(self.n_players):
+            #     self.joint_policy_pi[i] = self.optimize_regularized_objective_function(
+            #         cum_values=self.joint_cumulative_values[i],
+            #         regularizer=self.regularizer,
+            #     )
+            
+            # Replicator Dynamics
+            lr = 0.01            
+            state_values = np.sum(self.joint_q_values * self.joint_policy_pi, axis=1)  # V_t = sum_a Q_t(a) * pi_t(a)
+            advantage_values = self.joint_q_values - state_values[:, None]  # A_t(a) = Q_t(a) - V_t
             for i in range(self.n_players):
-                self.joint_policy_pi[i] = self.optimize_regularized_objective_function(
-                    cum_values=self.joint_cumulative_values[i],
-                    regularizer=self.regularizer,
-                )
-                
+                for a in range(self.n_actions):
+                    self.joint_policy_pi[i][a] += lr * advantage_values[i][a] * self.joint_policy_pi[i][a]
+                        
             # Increment timestep
+            self.joint_q_values = np.zeros((self.n_players, self.n_actions))
             self.timestep += 1
     
     

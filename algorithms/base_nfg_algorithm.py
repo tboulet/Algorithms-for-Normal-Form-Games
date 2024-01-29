@@ -99,7 +99,7 @@ class BaseNFGAlgorithm(ABC):
         Returns:
             JointPolicy: the joint policy (softmax of the logits)
         """
-        return [self.get_softmax_policy_from_logits(logits) for logits in joint_logits]
+        return np.array([self.get_softmax_policy_from_logits(logits) for logits in joint_logits])
     
     def get_softmax_policy_from_logits(self,
         logits : List[float],

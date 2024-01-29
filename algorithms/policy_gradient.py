@@ -88,7 +88,10 @@ class PolicyGradient(BaseNFGAlgorithm):
         if has_estimated_q_values:
             
             # Update logits and reset Q values
-            state_values = np.sum(self.joint_logits * self.joint_q_values, axis=1, keepdims=True)  # V_t = sum_a pi_t(a) * Q_t(a)
+            
+            
+            joint_policy = self.get_softmax_joint_policy_from_logits(joint_logits=self.joint_logits)
+            state_values = np.sum(joint_policy * self.joint_q_values, axis=1)
             advantage_values = self.joint_q_values - state_values  # A_t(a) = Q_t(a) - V_t
             self.joint_logits = self.joint_logits + self.learning_rate * (1 - self.get_softmax_joint_policy_from_logits(joint_logits=self.joint_logits)) * advantage_values
             self.joint_q_values = np.zeros((self.n_players, self.n_actions))
