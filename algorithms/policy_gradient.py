@@ -9,13 +9,13 @@ from core.utils import to_numeric
 
 
 
-class SoftmaxPolicyGradient(BaseNFGAlgorithm):
+class PolicyGradient(BaseNFGAlgorithm):
     def __init__(self,
         learning_rate : float,
         q_value_estimation_method : str,
         n_monte_carlo_q_evaluation : int,
     ) -> None:
-        """Initializes the Softmax Policy Gradient algorithm.
+        """Initializes the (Softmax) Policy Gradient algorithm.
         This algorithm try to maximize the expected reward by using a softmax tabular policy gradient approach.
 
         Args:

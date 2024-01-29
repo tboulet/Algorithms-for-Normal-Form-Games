@@ -3,10 +3,10 @@ from typing import Dict, Type
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from algorithms.forel import Forel
 from algorithms.iterated_forel_lyapunov import IteratedForel
-from algorithms.softmax_policy_gradient import SoftmaxPolicyGradient
+from algorithms.policy_gradient import PolicyGradient
 
 algo_name_to_nfg_solver : Dict[str, Type[BaseNFGAlgorithm]] = {
-    "softmax_policy_gradient" : SoftmaxPolicyGradient,
+    "policy_gradient" : PolicyGradient,
     "iterated_forel_lyapunov" : IteratedForel,
     "forel" : Forel,
 }
