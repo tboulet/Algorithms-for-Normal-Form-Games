@@ -1,0 +1,5 @@
+algo_name : fictitious_play
+algo_config :
+  learning_rate : 0.5
+  q_value_estimation_method : model-based
+  n_monte_carlo_q_evaluation : 100

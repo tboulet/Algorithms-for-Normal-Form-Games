@@ -5,6 +5,7 @@ tqdm_bar : True
 do_wandb: True
 do_tb : True
 do_cli : False
+do_plot : False
 n_episodes_training: 100000
 
 

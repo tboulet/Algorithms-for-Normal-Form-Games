@@ -90,7 +90,7 @@ class Forel(BaseNFGAlgorithm):
         
         if has_estimated_q_values:
             # Update cumulative values and reset Q values
-            lr = 1  # TODO: check if we should use a learning rate
+            lr = 1/np.sqrt(self.timestep + 1)  # TODO: check if we should use a learning rate
             for i in range(self.n_players):
                 self.joint_cumulative_values[i] += lr * self.joint_q_values[i]
             self.joint_q_values = np.zeros((self.n_players, self.n_actions))
@@ -133,9 +133,7 @@ class Forel(BaseNFGAlgorithm):
             Policy: an agent-policy that is the result of the optimization step
         """
         if regularizer == "entropy":
-            exp_cum_values = np.exp(cum_values)
-            policy = exp_cum_values / np.sum(exp_cum_values)
-            return policy
+            return self.get_softmax_policy_from_logits(logits=cum_values)
         elif regularizer == "l2":
             raise NotImplementedError
         else:

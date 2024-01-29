@@ -28,6 +28,7 @@ def main(config: DictConfig):
     
     # Get the config parameters
     n_episodes_training = to_numeric(config["n_episodes_training"])
+    do_plot = config["do_plot"]
     
     # Get the game
     game_name = config["game"]["game_name"]
@@ -43,19 +44,20 @@ def main(config: DictConfig):
     algo.initialize_algorithm(game)
     
     # Create a plot
-    joint_policies_inference = algo.get_inference_policies()
-    xy = [joint_policies_inference[0][0], joint_policies_inference[1][0]]
-    xy_history = [xy]
-    fig, ax = plt.subplots()
-    current_position = ax.scatter(*xy, c='r', label='Current Position')
-    previous_positions, = ax.plot([], [], linestyle='-', color='b', label='Trajectory')
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.set_xlabel('probability of taking first action for player 0')
-    ax.set_ylabel('probability of taking first action for player 1')
-    ax.set_title('Dynamics of the policies')
-    ax.legend()
-    plt.title('Policies')
+    if do_plot:
+        joint_policies_inference = algo.get_inference_policies()
+        xy = [joint_policies_inference[0][0], joint_policies_inference[1][0]]
+        xy_history = [xy]
+        fig, ax = plt.subplots()
+        current_position = ax.scatter(*xy, c='r', label='Current Position')
+        previous_positions, = ax.plot([], [], linestyle='-', color='b', label='Trajectory')
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.set_xlabel('probability of taking first action for player 0')
+        ax.set_ylabel('probability of taking first action for player 1')
+        ax.set_title('Dynamics of the policies')
+        ax.legend()
+        plt.title('Policies')
     
     for idx_episode_training in range(n_episodes_training):
         
@@ -73,13 +75,14 @@ def main(config: DictConfig):
             )
         
         # Update the policies plot
-        joint_policies_inference = algo.get_inference_policies()
-        xy = [joint_policies_inference[0][0], joint_policies_inference[1][0]]
-        current_position.set_offsets(xy)
-        xy_history.append(xy)
-        xy_history_array = np.array(xy_history)
-        previous_positions.set_data(xy_history_array[:, 0], xy_history_array[:, 1])
-        plt.pause(0.001)
+        if do_plot:
+            joint_policies_inference = algo.get_inference_policies()
+            xy = [joint_policies_inference[0][0], joint_policies_inference[1][0]]
+            current_position.set_offsets(xy)
+            xy_history.append(xy)
+            xy_history_array = np.array(xy_history)
+            previous_positions.set_data(xy_history_array[:, 0], xy_history_array[:, 1])
+            plt.pause(0.001)
         
         # Check if we should stop learning
         if algo.do_stop_learning():

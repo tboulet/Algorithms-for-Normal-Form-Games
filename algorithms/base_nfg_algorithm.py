@@ -99,10 +99,23 @@ class BaseNFGAlgorithm(ABC):
         Returns:
             JointPolicy: the joint policy (softmax of the logits)
         """
-        joint_policy = np.exp(joint_logits)
-        joint_policy = joint_policy / joint_policy.sum(axis=1, keepdims=True)
-        return joint_policy
-        
+        return [self.get_softmax_policy_from_logits(logits) for logits in joint_logits]
+    
+    def get_softmax_policy_from_logits(self,
+        logits : List[float],
+        ) -> Policy:
+        """Define a policy from logits, using the softmax function.
+
+        Args:
+            logits (List[float]): the logits
+
+        Returns:
+            Policy: the policy (softmax of the logits)
+        """
+        policy = np.exp(logits)
+        policy = policy / policy.sum()
+        return policy
+    
     def get_uniform_joint_policy(self,
         n_players : int,
         n_actions : int,
@@ -142,10 +155,11 @@ class BaseNFGAlgorithm(ABC):
             float: the Q value of the player playing the action in the joint policy
         """
         assert game.num_players() == 2 and game.num_distinct_actions() == 2, "This method is only implemented for 2-player 2-action games yet"
-        return sum([
-            game.get_rewards(joint_action=[action, b])[player] * joint_policy[1-player][b]
-            for b in range(2)])
-        
+        q_value = 0
+        for b in range(game.num_distinct_actions()):
+            joint_action = [action, b] if player == 0 else [b, action]
+            q_value += game.get_rewards(joint_action)[player] * joint_policy[1-player][b]
+        return q_value        
         
     def is_similar_enough(self,
         joint_policy1: JointPolicy,
