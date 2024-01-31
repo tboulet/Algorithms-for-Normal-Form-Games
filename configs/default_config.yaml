@@ -1,18 +1,21 @@
 # Training configuration for inRL
 seed: Null
+n_episodes_training: 10000000
+
+# Display information
 verbose: 2
 tqdm_bar : True
 do_wandb: True
 do_tb : True
 do_cli : False
-do_plot : True
-n_episodes_training: 100000
+do_plot_online : False
+frequency_plot : 100000
 
 
 
 
 defaults:
-  - algo : iforel
+  - algo : forel
   - game : mp
   - override hydra/hydra_logging: disabled  
   - override hydra/job_logging: disabled 

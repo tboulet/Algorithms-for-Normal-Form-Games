@@ -11,6 +11,7 @@ from core.typing import JointPolicy, Policy
 class Forel(BaseNFGAlgorithm):
     def __init__(self,
         q_value_estimation_method : str,
+        learning_rate : float,
         n_monte_carlo_q_evaluation: int,
         regularizer: str,
     ) -> None:
@@ -20,10 +21,12 @@ class Forel(BaseNFGAlgorithm):
 
         Args:
             q_value_estimation_method (str): the method used to estimate the Q values (either "mc" or "model-based")
+            learning_rate (float): the learning rate used to update the policy
             n_monte_carlo_q_evaluation (int): the number of episodes used to estimate the Q values
             regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
         """
         self.q_value_estimation_method = q_value_estimation_method
+        self.learning_rate = learning_rate
         self.n_monte_carlo_q_evaluation = n_monte_carlo_q_evaluation
         self.regularizer = regularizer
         
@@ -48,9 +51,7 @@ class Forel(BaseNFGAlgorithm):
     def choose_joint_action(self,
         ) -> Tuple[List[int], List[float]]:
         # Choose actions for both players
-        chosen_actions = [np.random.choice(self.n_actions, p=self.joint_policy_pi[i]) for i in range(self.n_players)]
-        probs = [self.joint_policy_pi[i][chosen_actions[i]] for i in range(self.n_players)]
-        return chosen_actions, probs
+        return self.sample_joint_action_probs_from_policy(joint_policy=self.joint_policy_pi)
     
     
     def learn(self,
@@ -102,13 +103,14 @@ class Forel(BaseNFGAlgorithm):
             #     )
             
             # Replicator Dynamics
-            lr = 0.01            
             state_values = np.sum(self.joint_q_values * self.joint_policy_pi, axis=1)  # V_t = sum_a Q_t(a) * pi_t(a)
             advantage_values = self.joint_q_values - state_values[:, None]  # A_t(a) = Q_t(a) - V_t
             for i in range(self.n_players):
                 for a in range(self.n_actions):
-                    self.joint_policy_pi[i][a] += lr * advantage_values[i][a] * self.joint_policy_pi[i][a]
-                        
+                    self.joint_policy_pi[i][a] += self.learning_rate * advantage_values[i][a] * self.joint_policy_pi[i][a]
+                # Normalize policy in case of numerical errors
+                self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
+            
             # Increment timestep
             self.joint_q_values = np.zeros((self.n_players, self.n_actions))
             self.timestep += 1

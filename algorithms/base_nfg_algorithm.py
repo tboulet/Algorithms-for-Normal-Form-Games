@@ -1,3 +1,4 @@
+import random
 from typing import List, Tuple, Any, Callable
 from abc import ABC, abstractmethod
 
@@ -133,9 +134,17 @@ class BaseNFGAlgorithm(ABC):
         Returns:
             Tuple[List[int], List[float]]: the joint action and the probability of playing that joint action
         """
-        joint_action = [np.random.choice(len(joint_policy[i]), p=joint_policy[i]) for i in range(len(joint_policy))]
-        probs = [joint_policy[i][joint_action[i]] for i in range(len(joint_policy))]
-        return joint_action, probs
+        joint_action = []
+        joint_action_probs = []
+        for i in range(len(joint_policy)):
+            if len(joint_policy[i]) == 2:
+                action = int(random.random() < joint_policy[i][0])
+            else:
+                action = random.choices(range(len(joint_policy[i])), weights=joint_policy[i])[0]
+            joint_action.append(action)
+            joint_action_probs.append(joint_policy[i][action])
+        return joint_action, joint_action_probs
+    
     
     def get_model_based_q_value(self, 
             game : BaseNFGGame,
