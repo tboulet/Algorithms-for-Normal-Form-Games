@@ -38,18 +38,25 @@ Currently, the following algorithms are available:
  - `iforel` : Iterated FoReL Lyapunov algorithm. Apply FoReL iteratively, each iteration with the reward being modified by a regularization term that depends on the previous obtained policy.
  - `pg` : (Softmax) Policy Gradients : apply policy gradients on the policy of each agent, with the objective function being the expected advantage values.
 
+### Games
 
 The game tag should correspond to a configuration in ``configs/game/`` where you can specify the game and its hyperparameters.
 
-Currentlyn the following games are implemented :
+Currently the following games are implemented :
+- `mp` : Matching Pennies. In this game, there are two agents and two actions. The first agent (Even) receive +1 if the actions are the same, -1 otherwise. The second agent (Odd) receive the opposite reward. The only Nash Equilibrium (NE) that exists is (1/2, 1/2)
+- `mp_bias` : a MP game biaised, where the joint action (0,0) gives rewards (4, -4) instead of (1, -1). The NE is thus slightly different.
+- `mp_bias_nonzero` : here, the (0,0) returns are (4, -1), which makes the game non-zero-sum.
+- `kuhn` : an NFG version of Kuhn Poker, where an action corresponds to choosing the contextual deterministic policy to be played: a ={pi(action|card) | action in A, card in S}
+- `rps` : Rock-Paper-Scissors game. The NE is (1/3, 1/3, 1/3). Not currently implemented.
 
 
 We use Hydra as our config system. The config folder is `./configs/`. You can modify the config (logging, metrics, number of training episodes) from the `default_config.yaml` file. You can also create your own config file and specify it with the `--config-name` argument :
 
 ```bash
-python run_nfg.py algo=iterated_forel game=rps --config-name=my_config
+python run_nfg.py algo=forel game=mp --config-name=my_config_name
 ```
 
 Advice : create an alias for the command above this.
 
-The available algorithms are in the `algorithms` sub-folder. The available games are simply in the ``configs/game/`` folder, but that may change in the future for more complex games.
+
+## Visualization 
