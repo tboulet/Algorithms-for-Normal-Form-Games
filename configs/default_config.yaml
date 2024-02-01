@@ -1,6 +1,6 @@
 # Training configuration for inRL
 seed: Null
-n_episodes_training: 10000000
+n_episodes_training: 1000000
 
 # Display information
 verbose: 2
