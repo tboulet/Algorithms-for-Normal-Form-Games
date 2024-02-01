@@ -1,5 +1,5 @@
 game_name : matching_pennies
 game_config :
   payoff_matrix: 
-  - [[1, -1], [-1, 1]]
+  - [[4, -4], [-1, 1]]
   - [[-1, 1], [1, -1]]

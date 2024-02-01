@@ -98,12 +98,7 @@ class PolicyGradient(BaseNFGAlgorithm):
             
             # Increment timestep
             self.timestep += 1
-    
-    
-    def do_stop_learning(self,
-        ) -> bool:
-        return False
-    
+        
     
     def get_inference_policies(self,
         ) -> JointPolicy:

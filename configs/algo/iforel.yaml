@@ -1,7 +1,12 @@
 algo_name : iterated_forel_lyapunov
 algo_config :
-  n_iterations_max : 10
-  n_timesteps_per_iterations : 100
-  n_monte_carlo_q_evaluation : 10
-  eta : 0.1
+  # ForeL parameters
+  q_value_estimation_method : mc
+  dynamics_method : rd
+  learning_rate_rd : 0.001
+  learning_rate_cum_values : 0.1
+  n_monte_carlo_q_evaluation : 20
   regularizer : entropy
+  # Iterated FoReL Lyapunov parameters
+  n_timesteps_per_iterations : 10
+  eta : 1

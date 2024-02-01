@@ -29,7 +29,7 @@ def main(config: DictConfig):
     # Get the config parameters
     n_episodes_training = to_numeric(config["n_episodes_training"])
     do_plot_online = config["do_plot_online"]
-    frequency_plot = config["frequency_plot"]
+    frequency_plot = to_numeric(config["frequency_plot"])
     tqdm_bar = config["tqdm_bar"]
     
     # Get the game
@@ -79,14 +79,11 @@ def main(config: DictConfig):
         joint_policies_inference = algo.get_inference_policies()
         list_x.append(joint_policies_inference[0][0])
         list_y.append(joint_policies_inference[1][0])
-        if do_plot_online or idx_episode_training == frequency_plot:
+        if do_plot_online or idx_episode_training % frequency_plot == 0:
             previous_positions.set_data(list_x, list_y)
             current_position.set_offsets([list_x[-1], list_y[-1]])
-            plt.pause(0.001)
-        
-        # Check if we should stop learning
-        if algo.do_stop_learning():
-            break
+            plt.pause(0.1)
+    
     
     # Plot the policies
     if not do_plot_online:

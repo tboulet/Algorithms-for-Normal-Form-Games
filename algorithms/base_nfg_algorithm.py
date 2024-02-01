@@ -50,16 +50,6 @@ class BaseNFGAlgorithm(ABC):
         """
     
     @abstractmethod
-    def do_stop_learning(self,
-        ) -> bool:
-        """Returns whether the algorithm should stop learning or not.
-
-        Returns:
-            bool: whether the algorithm should stop learning or not
-        """
-        pass
-    
-    @abstractmethod
     def get_inference_policies(self,
         ) -> JointPolicy:
         """Returns the joint policies used for inference, for evaluation purposes.

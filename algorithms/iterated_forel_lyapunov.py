@@ -11,22 +11,33 @@ from core.utils import to_numeric
 
 class IteratedForel(BaseNFGAlgorithm):
     def __init__(self,
-        n_iterations_max : int,
-        n_timesteps_per_iterations: int,
+        # FoReL specific parameters
+        q_value_estimation_method : str,
+        dynamics_method : str,
+        learning_rate_rd : float,
+        learning_rate_cum_values : float,
         n_monte_carlo_q_evaluation: int,
-        eta: float,
         regularizer: str,
+        # Iterated FoReL specific parameters
+        n_timesteps_per_iterations: int,
+        eta: float,
     ) -> None:
         """Initializes the Iterated FoReL algorithm.
 
         Args:
-            n_iterations_max (int): the maximum number of iterations
-            n_timesteps_per_iterations (int): the number of timesteps per iteration
+            q_value_estimation_method (str): the method used to estimate the Q values (either "mc" or "model-based")
+            dynamics_method (str): the method used to update the policy (either "softmax" or "rd" (Replicator Dynamics))
+            learning_rate_rd (float): the learning rate used to update the policy (only used if dynamics_method == "rd")
+            learning_rate_cum_values (float): the learning rate used to update the cumulative values (only used if dynamics_method == "softmax")
             n_monte_carlo_q_evaluation (int): the number of episodes used to estimate the Q values
-            eta (float): the eta parameter of the algorithm
             regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
+            n_timesteps_per_iterations (int): the number of timesteps per iteration
+            eta (float): the eta parameter of the algorithm for modifying the rewards
         """
-        self.n_iterations_max = to_numeric(n_iterations_max)
+        self.q_value_estimation_method = q_value_estimation_method
+        self.dynamics_method = dynamics_method
+        self.learning_rate_rd = learning_rate_rd
+        self.learning_rate_cum_values = learning_rate_cum_values
         self.n_timesteps_per_iterations = n_timesteps_per_iterations
         self.n_monte_carlo_q_evaluation = n_monte_carlo_q_evaluation
         self.eta = eta
@@ -38,6 +49,7 @@ class IteratedForel(BaseNFGAlgorithm):
     def initialize_algorithm(self,
         game: BaseNFGGame,
         ) -> None:
+        self.game = game
         self.n_actions = game.num_distinct_actions()
         self.n_players = game.num_players()
         
@@ -62,8 +74,12 @@ class IteratedForel(BaseNFGAlgorithm):
         rewards: List[float],
         ) -> None:
         
+        # Those two booleans control which part of the algorithm is executed
+        has_estimated_q_values = False
+        has_done_forel_optimization = False
         
-        # Modify the rewards
+        
+        # --- Modify the rewards ---
         returns_modified = self.modify_rewards(
             returns=rewards,
             chosen_actions=joint_action,
@@ -72,46 +88,71 @@ class IteratedForel(BaseNFGAlgorithm):
             eta=self.eta,
         )
         
-        # Update cumulative Q values
-        for i in range(self.n_players):
-            self.joint_q_values[i][joint_action[i]] += returns_modified[i] / self.n_monte_carlo_q_evaluation  # Q^i_t(a) = Q^i_{t-1}(a) + r^i_t(a) / n_monte_carlo_q_evaluation
-
-        # Increment monte carlo q evaluation episode index
-        self.monte_carlo_q_evaluation_episode_idx += 1
-        if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
-            self.monte_carlo_q_evaluation_episode_idx = 0
-            
-            # Update cumulative values and reset Q values
-            lr = 1  # TODO: check if we should use a learning rate
+        
+        # --- Estimate Q values ---
+        if self.q_value_estimation_method == "mc":
+            # Method 1 : MC evaluation
             for i in range(self.n_players):
-                self.joint_cumulative_values[i] += lr * self.joint_q_values[i]
-            self.joint_q_values = np.zeros((self.n_players, self.n_actions))
-            
-            # Update pi by optimizing the regularized objective function
-            for i in range(self.n_players):
-                self.joint_policy_pi[i] = self.optimize_regularized_objective_function(
-                    cum_values=self.joint_cumulative_values[i],
-                    regularizer=self.regularizer,
-                )
+                self.joint_q_values[i][joint_action[i]] += returns_modified[i] / self.n_monte_carlo_q_evaluation  # Q^i_t(a) = Q^i_{t-1}(a) + r^i_t(a) / n_monte_carlo_q_evaluation
+            # Increment monte carlo q evaluation episode index
+            self.monte_carlo_q_evaluation_episode_idx += 1
+            if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
+                self.monte_carlo_q_evaluation_episode_idx = 0
+                has_estimated_q_values = True
                 
-            # Increment iteration index
+        elif self.q_value_estimation_method == "model-based":
+            # Method 2 : get Q values from the game object (model-based)
+            for i in range(self.n_players):
+                for a in range(self.n_actions):
+                    self.joint_q_values[i][a] = self.get_model_based_q_value(
+                                                            game=self.game, 
+                                                            joint_policy=self.joint_policy_pi, 
+                                                            player=i, 
+                                                            action=a,
+                                                            )
+            has_estimated_q_values = True
+            
+            
+        # --- Update the policy ---
+        if has_estimated_q_values:
+            
+            if self.dynamics_method == "softmax":
+                # Method 1 : pi_i = softmax(cum_values_i)
+                for i in range(self.n_players):
+                    self.joint_cumulative_values[i] += self.learning_rate_cum_values * self.joint_q_values[i]
+                for i in range(self.n_players):
+                    self.joint_policy_pi[i] = self.optimize_regularized_objective_function(
+                        cum_values=self.joint_cumulative_values[i],
+                        regularizer=self.regularizer,
+                    )
+            
+            elif self.dynamics_method == "rd":    
+                # Method 2 : Replicator Dynamics
+                state_values = np.sum(self.joint_q_values * self.joint_policy_pi, axis=1)  # V_t = sum_a Q_t(a) * pi_t(a)
+                advantage_values = self.joint_q_values - state_values[:, None]  # A_t(a) = Q_t(a) - V_t
+                for i in range(self.n_players):
+                    for a in range(self.n_actions):
+                        self.joint_policy_pi[i][a] += self.learning_rate_rd * advantage_values[i][a] * self.joint_policy_pi[i][a]
+                    # Normalize policy in case of numerical errors
+                    self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
+            
+            # Increment timestep and reset the Q values
             self.timestep += 1
+            self.joint_q_values = np.zeros((self.n_players, self.n_actions))
             if self.timestep == self.n_timesteps_per_iterations:
                 self.timestep = 0
-                # Set mu policy as the obtained pi policy, reset cumulative values
-                self.iteration += 1
-                self.joint_policy_mu = self.joint_policy_pi.copy()
-                self.joint_cumulative_values = np.zeros((self.n_players, self.n_actions))
-                self.joint_q_values = np.zeros((self.n_players, self.n_actions))
+                has_done_forel_optimization = True
+                
+                
+        # --- Update the mu policy ---
+        if has_done_forel_optimization:
+            # Set mu policy as the obtained pi policy, reset cumulative values
+            self.iteration += 1
+            self.joint_policy_mu = self.joint_policy_pi.copy()
+            self.joint_cumulative_values = np.zeros((self.n_players, self.n_actions))
+            self.joint_q_values = np.zeros((self.n_players, self.n_actions))
 
-            if self.iteration == self.n_iterations_max:
-                exit()
-    
-    
-    def do_stop_learning(self,
-        ) -> bool:
-        return self.iteration >= self.n_iterations_max
-    
+        
     
     def get_inference_policies(self,
         ) -> JointPolicy:
@@ -140,6 +181,9 @@ class IteratedForel(BaseNFGAlgorithm):
         Returns:
             List[float]: the modified rewards
         """
+        if eta == 0:
+            return returns
+        
         n_players = len(pi)
         n_actions = len(pi[0])
         
@@ -156,7 +200,7 @@ class IteratedForel(BaseNFGAlgorithm):
             cum_values : List[List[float]],
             regularizer : str,
                 ) -> Policy:
-        """Apply dynamics
+        """Apply the optimization step of the FoReL algorithm.
 
         Args:
             cum_values (List[List[float]]): the cumulative Q values of the players from the beginning of the episode
