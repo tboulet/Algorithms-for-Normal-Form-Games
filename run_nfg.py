@@ -1,36 +1,54 @@
-# Imports
-
+# ML libraries
+import random
 import numpy as np
-from core.utils import to_numeric
 
+# Utils
 import datetime
 from typing import Any, List, Callable, Tuple
 from matplotlib import pyplot as plt
+
+# Logging
+import wandb
+from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import cProfile, pstats
 
+# Config system
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-# Define some types for lisibility
-Policy = List[float]
-JointPolicy = List[Policy]   # if p is of type Policy, then p[i][a] = p_i(a)
-Game = Any
-
+# Project imports
+from core.utils import to_numeric, try_get_seed
+from core.typing import Policy, JointPolicy
+from core.dynamic_tracker import DynamicTracker
 from algorithms import algo_name_to_nfg_solver
 from games import game_name_to_nfg_solver
+
+
 
 @hydra.main(config_path="configs", config_name="default_config.yaml")
 def main(config: DictConfig):
     print("Configuration used :")
-    print(OmegaConf.to_yaml(config))
+    print(OmegaConf.to_yaml(config), "\n")
     config = OmegaConf.to_container(config, resolve=True)
     
     # Get the config parameters
     n_episodes_training = to_numeric(config["n_episodes_training"])
+    seed = try_get_seed(config)
+    
+    frequency_metric = config["frequency_metric"]
+    do_cli = config["do_cli"]
+    frequency_cli = to_numeric(config["frequency_cli"])
+    do_tb = config["do_tb"]
+    do_wandb = config["do_wandb"]
+    wandb_config = config["wandb_config"]
+    tqdm_bar = config["tqdm_bar"]
     do_plot_online = config["do_plot_online"]
     frequency_plot = to_numeric(config["frequency_plot"])
-    tqdm_bar = config["tqdm_bar"]
+    
+    # Set the seeds
+    random.seed(seed)
+    np.random.seed(seed)
     
     # Get the game
     game_name = config["game"]["game_name"]
@@ -44,24 +62,29 @@ def main(config: DictConfig):
     AlgoClass = algo_name_to_nfg_solver[algo_name]
     algo = AlgoClass(**algo_config)
     algo.initialize_algorithm(game)
-    
-    # Initialize policies tracker
-    joint_policies_inference = algo.get_inference_policies()
-    list_x = [joint_policies_inference[0][0]]
-    list_y = [joint_policies_inference[1][0]]
-    fig, ax = plt.subplots()
-    previous_positions, = ax.plot([], [], linestyle='-', color='b', label='Trajectory')
-    current_position = ax.scatter(list_x, list_y, color='r', label='Current position')
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.set_xlabel('probability of taking first action for player 0')
-    ax.set_ylabel('probability of taking first action for player 1')
-    ax.set_title('Dynamics of the policies')
-    ax.legend()
-    plt.title('Policies')
-    
+        
+    # Intialize the logging
+    run_name = f"[{algo_name}]_[{game_name}]_{datetime.datetime.now().strftime('%dth%mmo_%Hh%Mmin%Ss')}_seed{seed}"
+    print(f"Starting run {run_name}")
+    dynamic_tracker = DynamicTracker(
+        name = run_name,
+        algo = algo,
+        do_plot_online = do_plot_online,
+        )
+    if do_tb:
+        writer = SummaryWriter(log_dir=f"tensorboard/{run_name}")
+    if do_wandb:
+        wandb_run = wandb.init(
+            name=run_name,
+            config=config,
+            **wandb_config,
+            )
+        
     for idx_episode_training in tqdm(range(n_episodes_training), disable=not tqdm_bar):
         
+        # Update the dynamic tracker (for visualization of the policies dynamics)
+        dynamic_tracker.update(do_update_plot = (do_plot_online and idx_episode_training % frequency_plot == 0))
+         
         # Choose a joint action
         joint_action, probs = algo.choose_joint_action()
         
@@ -69,29 +92,36 @@ def main(config: DictConfig):
         rewards = game.get_rewards(joint_action)
         
         # Learn from the experience
-        algo.learn(
+        metrics = algo.learn(
             joint_action=joint_action, 
             probs=probs, 
             rewards=rewards,
             )
         
-        # Keep track of the policies
-        joint_policies_inference = algo.get_inference_policies()
-        list_x.append(joint_policies_inference[0][0])
-        list_y.append(joint_policies_inference[1][0])
-        if do_plot_online or idx_episode_training % frequency_plot == 0:
-            previous_positions.set_data(list_x, list_y)
-            current_position.set_offsets([list_x[-1], list_y[-1]])
-            plt.pause(0.1)
-    
-    
-    # Plot the policies
-    if not do_plot_online:
-        previous_positions.set_data(list_x, list_y)
-        current_position.set_offsets([list_x[-1], list_y[-1]])
-        plt.show()
+        # Log the metrics
+        if isinstance(metrics, dict) and idx_episode_training % frequency_metric == 0:
+            if do_tb:
+                for metric_name, metric_value in metrics.items():
+                    writer.add_scalar(metric_name, metric_value, global_step=idx_episode_training)
+            if do_wandb:
+                wandb.log(metrics, step=idx_episode_training)
+            if do_cli and idx_episode_training % frequency_cli == 0:
+                print(f"Episode {idx_episode_training} : \n{metrics}")
+                
+    # At the end of the run, show and save the plot of the dynamics
+    dynamic_tracker.update(do_update_plot=True)
+    dynamic_tracker.save(path = f"logs/{run_name}/dynamics.png")
+    dynamic_tracker.show()
 
-if __name__ == "__main__":
+    # Close the logging
+    if do_tb:
+        writer.close()
+    if do_wandb:
+        wandb_run.finish()
+        
+        
+
+if __name__ == "__main__":   
     with cProfile.Profile() as pr:
         main()
     stats = pstats.Stats(pr)

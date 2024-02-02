@@ -60,3 +60,7 @@ Advice : create an alias for the command above this.
 
 
 ## Visualization 
+
+The policies will be plot online during the training, every `frequency_plot` episodes, on a 2D plot. 
+
+For 2-players 2-actions games, the x axis represent the probability of agent 0 to play action 0, and the y axis represent the probability of agent 1 to play action 0. This defines entirely the joint policy of the two agents.

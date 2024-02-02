@@ -1,16 +1,18 @@
 # Training configuration for inRL
-seed: Null
 n_episodes_training: 1000000
+seed: Null
 
 # Display information
-verbose: 2
-tqdm_bar : True
-do_wandb: True
+frequency_metric : 10000
+do_cli : True
+frequency_cli : 100000
 do_tb : True
-do_cli : False
-do_plot_online : False
+do_wandb : False
+wandb_config:
+  project : Algorithms-for-Normal-Form-Games
+tqdm_bar : True
+do_plot_online : True
 frequency_plot : 100000
-
 
 
 
