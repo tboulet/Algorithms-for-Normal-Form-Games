@@ -10,9 +10,11 @@ do_tb : True
 do_wandb : False
 wandb_config:
   project : Algorithms-for-Normal-Form-Games
+plot_config :
+  do_plot_online : True
+  frequency_plot : 1000
+  frequency_points_plot : 100
 tqdm_bar : True
-do_plot_online : True
-frequency_plot : 10000
 
 
 
