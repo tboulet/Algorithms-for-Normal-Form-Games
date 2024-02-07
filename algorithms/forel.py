@@ -41,12 +41,13 @@ class Forel(BaseNFGAlgorithm):
     
     def initialize_algorithm(self,
         game: BaseNFGGame,
+        joint_policy_pi : Optional[JointPolicy] = None,
         ) -> None:
         self.game = game
         self.n_actions = game.num_distinct_actions()
         self.n_players = game.num_players()
         
-        self.joint_policy_pi = self.initialize_randomly_joint_policy(n_players=self.n_players, n_actions=self.n_actions)
+        self.joint_policy_pi = self.initialize_randomly_joint_policy(n_players=self.n_players, n_actions=self.n_actions) if joint_policy_pi is None else joint_policy_pi
         self.joint_cumulative_values = np.zeros((self.n_players, self.n_actions))
         self.joint_q_values = np.zeros((self.n_players, self.n_actions))
         self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
