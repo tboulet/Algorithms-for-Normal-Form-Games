@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from typing import Any, List, Callable, Tuple
+from typing import Any, List, Callable, Tuple, Dict, Optional
 
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from games.base_nfg_game import BaseNFGGame
@@ -49,6 +49,7 @@ class Forel(BaseNFGAlgorithm):
         self.joint_policy_pi = self.initialize_randomly_joint_policy(n_players=self.n_players, n_actions=self.n_actions)
         self.joint_cumulative_values = np.zeros((self.n_players, self.n_actions))
         self.joint_q_values = np.zeros((self.n_players, self.n_actions))
+        self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
         
         self.timestep : int = 0
         self.monte_carlo_q_evaluation_episode_idx : int = 0
@@ -64,7 +65,7 @@ class Forel(BaseNFGAlgorithm):
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
-        ) -> None:
+        ) -> Optional[Dict[str, float]]:
         
         # Those two booleans control which part of the algorithm is executed
         has_estimated_q_values = False
@@ -72,8 +73,13 @@ class Forel(BaseNFGAlgorithm):
         # --- Estimate Q values ---
         if self.q_value_estimation_method == "mc":
             # Method 1 : MC evaluation
+            # Incremental update of the Q values
             for i in range(self.n_players):
-                self.joint_q_values[i][joint_action[i]] += rewards[i] / self.n_monte_carlo_q_evaluation  # Q^i_t(a) = Q^i_{t-1}(a) + r^i_t(a) / n_monte_carlo_q_evaluation
+                if self.joint_count_seen_actions[i][joint_action[i]] == 0:
+                    self.joint_q_values[i][joint_action[i]] = rewards[i]
+                else:
+                    self.joint_q_values[i][joint_action[i]] += (rewards[i] - self.joint_q_values[i][joint_action[i]]) / (self.joint_count_seen_actions[i][joint_action[i]] + 2)
+                self.joint_count_seen_actions[i][joint_action[i]] += 1
             # Increment monte carlo q evaluation episode index
             self.monte_carlo_q_evaluation_episode_idx += 1
             if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
@@ -116,10 +122,16 @@ class Forel(BaseNFGAlgorithm):
                     # Normalize policy in case of numerical errors
                     self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
             
-            # Increment timestep and reset the Q values
+            # Increment timestep and reset the Q values and count seen actions
             self.joint_q_values = np.zeros((self.n_players, self.n_actions))
+            self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
             self.timestep += 1
         
+        return {
+            **{f"Q_0(a={a})" : self.joint_q_values[0][a] for a in range(self.n_actions)},
+            **{f"y_0(a={a})" : self.joint_cumulative_values[0][a] for a in range(self.n_actions)},
+            **{f"pi_0(a={a})" : self.joint_policy_pi[0][a] for a in range(self.n_actions)},
+        }
     
     def get_inference_policies(self,
         ) -> JointPolicy:

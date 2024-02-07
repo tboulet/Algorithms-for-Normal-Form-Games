@@ -1,5 +1,5 @@
 import random
-from typing import List, Tuple, Any, Callable
+from typing import Dict, List, Optional, Tuple, Any, Callable
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -40,13 +40,16 @@ class BaseNFGAlgorithm(ABC):
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
-        ) -> None:
+        ) -> Optional[Dict[str, float]]:
         """Learns from the experience of playing one episode.
 
         Args:
             joint_actions (List[int]): the joint actions played
             probs (List[float]): the probability of playing the joint action
             rewards (List[float]): the rewards obtained by the players
+            
+        Returns:
+            Optional[Dict[str, float]]: the metrics of the learning process, or None if no metrics returned
         """
     
     @abstractmethod
