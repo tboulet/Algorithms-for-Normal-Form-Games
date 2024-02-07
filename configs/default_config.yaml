@@ -3,22 +3,22 @@ n_episodes_training: 1000000
 seed: Null
 
 # Display information
-frequency_metric : 10000
+frequency_metric : 9999
 do_cli : True
-frequency_cli : 100000
+frequency_cli : 99999
 do_tb : True
 do_wandb : False
 wandb_config:
   project : Algorithms-for-Normal-Form-Games
 tqdm_bar : True
 do_plot_online : True
-frequency_plot : 100000
+frequency_plot : 10000
 
 
 
 defaults:
   - algo : forel
-  - game : mp
+  - game : mp_bias
   - override hydra/hydra_logging: disabled  
   - override hydra/job_logging: disabled 
 
