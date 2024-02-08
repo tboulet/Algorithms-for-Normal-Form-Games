@@ -36,12 +36,12 @@ def get_best_response(
 
     if player == 0:
         weighted_utility = (
-            utility_matrix * np.array(joint_policy[1])[:, np.newaxis, np.newaxis]
+            utility_matrix[:, :, 0] * np.array(joint_policy[1])[:, np.newaxis]
         )
         weighted_utility = np.sum(weighted_utility, axis=0)
     else:
         weighted_utility = (
-            utility_matrix * np.array(joint_policy[0])[np.newaxis, :, np.newaxis]
+            utility_matrix[:, :, 1] * np.array(joint_policy[0])[np.newaxis, :]
         )
         weighted_utility = np.sum(weighted_utility, axis=1)
 

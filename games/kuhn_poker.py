@@ -144,7 +144,7 @@ class KuhnPokerNFG(BaseNFGGame):
         )
 
     def num_distinct_actions(self) -> int:
-        return 2 ** len(self.Player1Plans)
+        return len(self.actions_index_to_action_1)
 
     def num_players(self) -> int:
         return 2
@@ -187,8 +187,8 @@ class KuhnPokerNFG(BaseNFGGame):
 
         for action_1 in range(len(self.actions_index_to_action_1)):
             for action_2 in range(len(self.actions_index_to_action_2)):
-                utility_matrix[action_1, action_2] = self.get_utility(
-                    action_1, action_2, memo_strat_card_rewards
+                utility_matrix[action_1, action_2], memo_strat_card_rewards = (
+                    self.get_utility(action_1, action_2, memo_strat_card_rewards)
                 )
 
         self.utility_matrix = utility_matrix
