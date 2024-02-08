@@ -3,7 +3,7 @@ from typing import Dict, Union
 import numpy as np
 
 
-def to_numeric(x : Union[int, float, str, None]) -> Union[int, float]:
+def to_numeric(x: Union[int, float, str, None]) -> Union[int, float]:
     if isinstance(x, int) or isinstance(x, float):
         return x
     elif isinstance(x, str):
@@ -14,10 +14,9 @@ def to_numeric(x : Union[int, float, str, None]) -> Union[int, float]:
         return float("-inf")
     else:
         raise ValueError(f"Cannot convert {x} to numeric")
-    
-    
-    
-def try_get_seed(config : Dict) -> int:
+
+
+def try_get_seed(config: Dict) -> int:
     """WWill try to extract the seed from the config, or return a random one if not found
 
     Args:

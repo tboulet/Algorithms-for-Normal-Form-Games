@@ -5,8 +5,8 @@ from algorithms.forel import Forel
 from algorithms.iterated_forel_lyapunov import IteratedForel
 from algorithms.policy_gradient import PolicyGradient
 
-algo_name_to_nfg_solver : Dict[str, Type[BaseNFGAlgorithm]] = {
-    "policy_gradient" : PolicyGradient,
-    "iterated_forel_lyapunov" : IteratedForel,
-    "forel" : Forel,
+algo_name_to_nfg_solver: Dict[str, Type[BaseNFGAlgorithm]] = {
+    "policy_gradient": PolicyGradient,
+    "iterated_forel_lyapunov": IteratedForel,
+    "forel": Forel,
 }

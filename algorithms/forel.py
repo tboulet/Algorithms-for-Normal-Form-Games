@@ -7,13 +7,13 @@ from games.base_nfg_game import BaseNFGGame
 from core.typing import JointPolicy, Policy
 
 
-
 class Forel(BaseNFGAlgorithm):
-    def __init__(self,
-        q_value_estimation_method : str,
-        dynamics_method : str,
-        learning_rate_rd : float,
-        learning_rate_cum_values : float,
+    def __init__(
+        self,
+        q_value_estimation_method: str,
+        dynamics_method: str,
+        learning_rate_rd: float,
+        learning_rate_cum_values: float,
         n_monte_carlo_q_evaluation: int,
         regularizer: str,
     ) -> None:
@@ -35,42 +35,50 @@ class Forel(BaseNFGAlgorithm):
         self.learning_rate_cum_values = learning_rate_cum_values
         self.n_monte_carlo_q_evaluation = n_monte_carlo_q_evaluation
         self.regularizer = regularizer
-        
 
     # Interface methods
-    
-    def initialize_algorithm(self,
+
+    def initialize_algorithm(
+        self,
         game: BaseNFGGame,
-        joint_policy_pi : Optional[JointPolicy] = None,
-        ) -> None:
+        joint_policy_pi: Optional[JointPolicy] = None,
+    ) -> None:
         self.game = game
         self.n_actions = game.num_distinct_actions()
         self.n_players = game.num_players()
-        
-        self.joint_policy_pi = self.initialize_randomly_joint_policy(n_players=self.n_players, n_actions=self.n_actions) if joint_policy_pi is None else joint_policy_pi
+
+        self.joint_policy_pi = (
+            self.initialize_randomly_joint_policy(
+                n_players=self.n_players, n_actions=self.n_actions
+            )
+            if joint_policy_pi is None
+            else joint_policy_pi
+        )
         self.joint_cumulative_values = np.zeros((self.n_players, self.n_actions))
         self.joint_q_values = np.zeros((self.n_players, self.n_actions))
         self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
-        
-        self.timestep : int = 0
-        self.monte_carlo_q_evaluation_episode_idx : int = 0
-        
 
-    def choose_joint_action(self,
-        ) -> Tuple[List[int], List[float]]:
+        self.timestep: int = 0
+        self.monte_carlo_q_evaluation_episode_idx: int = 0
+
+    def choose_joint_action(
+        self,
+    ) -> Tuple[List[int], List[float]]:
         # Choose actions for both players
-        return self.sample_joint_action_probs_from_policy(joint_policy=self.joint_policy_pi)
-    
-    
-    def learn(self,
+        return self.sample_joint_action_probs_from_policy(
+            joint_policy=self.joint_policy_pi
+        )
+
+    def learn(
+        self,
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
-        ) -> Optional[Dict[str, float]]:
-        
+    ) -> Optional[Dict[str, float]]:
+
         # Those two booleans control which part of the algorithm is executed
         has_estimated_q_values = False
-        
+
         # --- Estimate Q values ---
         if self.q_value_estimation_method == "mc":
             # Method 1 : MC evaluation
@@ -79,75 +87,100 @@ class Forel(BaseNFGAlgorithm):
                 if self.joint_count_seen_actions[i][joint_action[i]] == 0:
                     self.joint_q_values[i][joint_action[i]] = rewards[i]
                 else:
-                    self.joint_q_values[i][joint_action[i]] += (rewards[i] - self.joint_q_values[i][joint_action[i]]) / (self.joint_count_seen_actions[i][joint_action[i]] + 1)
+                    self.joint_q_values[i][joint_action[i]] += (
+                        rewards[i] - self.joint_q_values[i][joint_action[i]]
+                    ) / (self.joint_count_seen_actions[i][joint_action[i]] + 1)
                 self.joint_count_seen_actions[i][joint_action[i]] += 1
             # Increment monte carlo q evaluation episode index
             self.monte_carlo_q_evaluation_episode_idx += 1
-            if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
+            if (
+                self.monte_carlo_q_evaluation_episode_idx
+                == self.n_monte_carlo_q_evaluation
+            ):
                 self.monte_carlo_q_evaluation_episode_idx = 0
                 has_estimated_q_values = True
-                
-        elif self.q_value_estimation_method == "model-based":   
-            # Method 2 : Model-based exact evaluation         
+
+        elif self.q_value_estimation_method == "model-based":
+            # Method 2 : Model-based exact evaluation
             for i in range(self.n_players):
                 for a in range(self.n_actions):
                     self.joint_q_values[i][a] = self.get_model_based_q_value(
-                            game=self.game,
-                            player=i,
-                            action=a,
-                            joint_policy=self.joint_policy_pi,
-                            )
-            has_estimated_q_values = True   
-        
+                        game=self.game,
+                        player=i,
+                        action=a,
+                        joint_policy=self.joint_policy_pi,
+                    )
+            has_estimated_q_values = True
+
         else:
-            raise ValueError(f"Unknown q_value_estimation_method : {self.q_value_estimation_method}")
-        
+            raise ValueError(
+                f"Unknown q_value_estimation_method : {self.q_value_estimation_method}"
+            )
+
         # --- Update the policy ---
         if has_estimated_q_values:
-            
+
             if self.dynamics_method == "softmax":
                 # Method 1 : pi_i = softmax(cum_values_i)
                 for i in range(self.n_players):
-                    self.joint_cumulative_values[i] += self.learning_rate_cum_values * self.joint_q_values[i]
-                for i in range(self.n_players):
-                    self.joint_policy_pi[i] = self.optimize_regularized_objective_function(
-                        cum_values=self.joint_cumulative_values[i],
-                        regularizer=self.regularizer,
+                    self.joint_cumulative_values[i] += (
+                        self.learning_rate_cum_values * self.joint_q_values[i]
                     )
-            
+                for i in range(self.n_players):
+                    self.joint_policy_pi[i] = (
+                        self.optimize_regularized_objective_function(
+                            cum_values=self.joint_cumulative_values[i],
+                            regularizer=self.regularizer,
+                        )
+                    )
+
             elif self.dynamics_method == "rd":
                 # Method 2 : Replicator Dynamics
-                state_values = np.sum(self.joint_q_values * self.joint_policy_pi, axis=1)  # V_t = sum_a Q_t(a) * pi_t(a)
-                advantage_values = self.joint_q_values - state_values[:, None]  # A_t(a) = Q_t(a) - V_t
+                state_values = np.sum(
+                    self.joint_q_values * self.joint_policy_pi, axis=1
+                )  # V_t = sum_a Q_t(a) * pi_t(a)
+                advantage_values = (
+                    self.joint_q_values - state_values[:, None]
+                )  # A_t(a) = Q_t(a) - V_t
                 for i in range(self.n_players):
                     for a in range(self.n_actions):
-                        self.joint_policy_pi[i][a] += self.learning_rate_rd * advantage_values[i][a] * self.joint_policy_pi[i][a]
+                        self.joint_policy_pi[i][a] += (
+                            self.learning_rate_rd
+                            * advantage_values[i][a]
+                            * self.joint_policy_pi[i][a]
+                        )
                     # Normalize policy in case of numerical errors
                     self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
-            
+
             # Increment timestep and reset the Q values and count seen actions
             self.joint_q_values = np.zeros((self.n_players, self.n_actions))
             self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
             self.timestep += 1
-        
+
         return {
-            **{f"Q_{i}(a=0)" : self.joint_q_values[i][0] for i in range(self.n_players)},
-            **{f"y_0(a={a})" : self.joint_cumulative_values[0][a] for a in range(self.n_actions)},
-            **{f"pi_0(a={a})" : self.joint_policy_pi[0][a] for a in range(self.n_actions)},
+            **{f"Q_{i}(a=0)": self.joint_q_values[i][0] for i in range(self.n_players)},
+            **{
+                f"y_0(a={a})": self.joint_cumulative_values[0][a]
+                for a in range(self.n_actions)
+            },
+            **{
+                f"pi_0(a={a})": self.joint_policy_pi[0][a]
+                for a in range(self.n_actions)
+            },
         }
-    
-    def get_inference_policies(self,
-        ) -> JointPolicy:
+
+    def get_inference_policies(
+        self,
+    ) -> JointPolicy:
         return self.joint_policy_pi
-     
-     
+
     # Helper methods
- 
-        
-    def optimize_regularized_objective_function(self, 
-            cum_values : List[List[float]],
-            regularizer : str,
-                ) -> Policy:
+
+    def optimize_regularized_objective_function(
+        self,
+        cum_values: List[List[float]],
+        regularizer: str,
+    ) -> Policy:
         """Apply dynamics
 
         Args:
@@ -163,5 +196,3 @@ class Forel(BaseNFGAlgorithm):
             raise NotImplementedError
         else:
             raise NotImplementedError
-    
-    

@@ -1,8 +1,11 @@
-# Logging 
+# Logging and visualization
 matplotlib 
 tqdm
 wandb
 tensorboard
+
+# Code quality
+black
 
 # Config system
 hydra-core
