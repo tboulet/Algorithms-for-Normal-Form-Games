@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Callable, Tuple
 
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from algorithms.forel import Forel
+from core.online_plotter import PointToPlot
 from games.base_nfg_game import BaseNFGGame
 from core.typing import JointPolicy, Policy
 from core.utils import to_numeric
@@ -77,8 +78,16 @@ class IteratedForel(Forel):
                 joint_policy_pi=self.joint_policy_pi,
             )
 
+        # Add the mu probs to the metrics as well as the current point
         metrics.update(
             {f"mu_0(a={a})": self.joint_policy_mu[0][a] for a in range(self.n_actions)}
+        )
+        metrics["mu_point"] = PointToPlot(
+            name="mu",
+            coords=self.joint_policy_mu[:, 0],
+            color="g",
+            marker="o",
+            is_unique=True,
         )
         return metrics
 
