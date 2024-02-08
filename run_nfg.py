@@ -20,7 +20,7 @@ from omegaconf import DictConfig, OmegaConf
 # Project imports
 from core.utils import to_numeric, try_get_seed
 from core.typing import Policy, JointPolicy
-from core.dynamic_tracker import DynamicTracker
+from core.online_plotter import OnlinePlotter, PointToPlot
 from algorithms import algo_name_to_nfg_solver
 from games import game_name_to_nfg_solver
 
@@ -64,11 +64,12 @@ def main(config: DictConfig):
     # Intialize the logging
     run_name = f"[{algo_name}]_[{game_name}]_{datetime.datetime.now().strftime('%dth%mmo_%Hh%Mmin%Ss')}_seed{seed}"
     print(f"Starting run {run_name}")
-    dynamic_tracker = DynamicTracker(
-        title=run_name,
-        algo=algo,
+    plotter = OnlinePlotter(
+        title=f"Policies Dynamics\n {run_name}",
         **plot_config,
     )
+    # TODO : plotter.add_point  # add Nash Equilibrium point
+
     if do_tb:
         writer = SummaryWriter(log_dir=f"tensorboard/{run_name}")
     if do_wandb:
@@ -81,7 +82,21 @@ def main(config: DictConfig):
     for idx_episode_training in tqdm(range(n_episodes_training), disable=not tqdm_bar):
 
         # Update the dynamic tracker (for visualization of the policies dynamics)
-        dynamic_tracker.update()
+        probs_first_action=algo.get_inference_policies()[:2, 0]
+        plotter.add_point(PointToPlot(
+            name="previous trajectory",
+            coords=probs_first_action,
+            color="b",
+            marker="-",
+        ))
+        plotter.add_point(PointToPlot(
+            name="current trajectory",
+            coords=probs_first_action,
+            color="r",
+            marker="o",
+            is_unique=True,
+        ))
+        plotter.update_plot()
 
         # Choose a joint action
         joint_action, probs = algo.choose_joint_action()
@@ -90,28 +105,35 @@ def main(config: DictConfig):
         rewards = game.get_rewards(joint_action).copy()
 
         # Learn from the experience
-        metrics = algo.learn(
+        objects_to_log = algo.learn(
             joint_action=joint_action,
             probs=probs,
             rewards=rewards,
         )
 
-        # Log the metrics
-        if isinstance(metrics, dict) and idx_episode_training % frequency_metric == 0:
+        # Log the objects returned by the learn method
+        if isinstance(objects_to_log, dict) and idx_episode_training % frequency_metric == 0:
+            metrics_to_log = {k : v for k, v in objects_to_log.items() if isinstance(v, (int, float))}
+            points_to_plot = {k : v for k, v in objects_to_log.items() if isinstance(v, PointToPlot)}
+            # Log the metrics
             if do_tb:
-                for metric_name, metric_value in metrics.items():
+                for metric_name, metric_value in metrics_to_log.items():
                     writer.add_scalar(
                         metric_name, metric_value, global_step=idx_episode_training
                     )
             if do_wandb:
-                wandb.log(metrics, step=idx_episode_training)
+                wandb.log(metrics_to_log, step=idx_episode_training)
             if do_cli and idx_episode_training % frequency_cli == 0:
-                print(f"Episode {idx_episode_training} : \n{metrics}")
-
+                print(f"Episode {idx_episode_training} : \n{metrics_to_log}")
+            # Log the points
+            for object_name, point in points_to_plot.items():
+                plotter.add_point(point)
+            
+            
     # At the end of the run, show and save the plot of the dynamics
-    dynamic_tracker.update()
-    dynamic_tracker.save(path=f"logs/{run_name}/dynamics.png")
-    dynamic_tracker.show()
+    plotter.update_plot(force_update=True)
+    plotter.save(path=f"logs/{run_name}/dynamics.png")
+    plotter.show()
 
     # Close the logging
     if do_tb:
