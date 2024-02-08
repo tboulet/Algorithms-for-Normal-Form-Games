@@ -42,9 +42,8 @@ def main(config: DictConfig):
     do_tb = config["do_tb"]
     do_wandb = config["do_wandb"]
     wandb_config = config["wandb_config"]
+    plot_config = config["plot_config"]
     tqdm_bar = config["tqdm_bar"]
-    do_plot_online = config["do_plot_online"]
-    frequency_plot = to_numeric(config["frequency_plot"])
     
     # Set the seeds
     random.seed(seed)
@@ -67,9 +66,9 @@ def main(config: DictConfig):
     run_name = f"[{algo_name}]_[{game_name}]_{datetime.datetime.now().strftime('%dth%mmo_%Hh%Mmin%Ss')}_seed{seed}"
     print(f"Starting run {run_name}")
     dynamic_tracker = DynamicTracker(
-        name = run_name,
+        title = run_name,
         algo = algo,
-        do_plot_online = do_plot_online,
+        **plot_config,
         )
     if do_tb:
         writer = SummaryWriter(log_dir=f"tensorboard/{run_name}")
@@ -83,13 +82,13 @@ def main(config: DictConfig):
     for idx_episode_training in tqdm(range(n_episodes_training), disable=not tqdm_bar):
         
         # Update the dynamic tracker (for visualization of the policies dynamics)
-        dynamic_tracker.update(do_update_plot = (do_plot_online and idx_episode_training % frequency_plot == 0))
+        dynamic_tracker.update()
          
         # Choose a joint action
         joint_action, probs = algo.choose_joint_action()
         
         # Play the joint action and get the rewards
-        rewards = game.get_rewards(joint_action)
+        rewards = game.get_rewards(joint_action).copy()
         
         # Learn from the experience
         metrics = algo.learn(
@@ -109,7 +108,7 @@ def main(config: DictConfig):
                 print(f"Episode {idx_episode_training} : \n{metrics}")
                 
     # At the end of the run, show and save the plot of the dynamics
-    dynamic_tracker.update(do_update_plot=True)
+    dynamic_tracker.update()
     dynamic_tracker.save(path = f"logs/{run_name}/dynamics.png")
     dynamic_tracker.show()
 

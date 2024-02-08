@@ -1,6 +1,6 @@
 algo_name : forel
 algo_config :
-  q_value_estimation_method : mc
+  q_value_estimation_method : model-based
   dynamics_method : rd
   learning_rate_rd : 0.001
   learning_rate_cum_values : 0.1

@@ -79,7 +79,7 @@ class Forel(BaseNFGAlgorithm):
                 if self.joint_count_seen_actions[i][joint_action[i]] == 0:
                     self.joint_q_values[i][joint_action[i]] = rewards[i]
                 else:
-                    self.joint_q_values[i][joint_action[i]] += (rewards[i] - self.joint_q_values[i][joint_action[i]]) / (self.joint_count_seen_actions[i][joint_action[i]] + 2)
+                    self.joint_q_values[i][joint_action[i]] += (rewards[i] - self.joint_q_values[i][joint_action[i]]) / (self.joint_count_seen_actions[i][joint_action[i]] + 1)
                 self.joint_count_seen_actions[i][joint_action[i]] += 1
             # Increment monte carlo q evaluation episode index
             self.monte_carlo_q_evaluation_episode_idx += 1
@@ -87,18 +87,20 @@ class Forel(BaseNFGAlgorithm):
                 self.monte_carlo_q_evaluation_episode_idx = 0
                 has_estimated_q_values = True
                 
-        elif self.q_value_estimation_method == "model-based":
-            # Method 2 : get Q values from the game object (model-based)
+        elif self.q_value_estimation_method == "model-based":   
+            # Method 2 : Model-based exact evaluation         
             for i in range(self.n_players):
                 for a in range(self.n_actions):
                     self.joint_q_values[i][a] = self.get_model_based_q_value(
-                                                            game=self.game, 
-                                                            joint_policy=self.joint_policy_pi, 
-                                                            player=i, 
-                                                            action=a,
-                                                            )
-            has_estimated_q_values = True
-            
+                            game=self.game,
+                            player=i,
+                            action=a,
+                            joint_policy=self.joint_policy_pi,
+                            )
+            has_estimated_q_values = True   
+        
+        else:
+            raise ValueError(f"Unknown q_value_estimation_method : {self.q_value_estimation_method}")
         
         # --- Update the policy ---
         if has_estimated_q_values:
@@ -129,7 +131,7 @@ class Forel(BaseNFGAlgorithm):
             self.timestep += 1
         
         return {
-            **{f"Q_0(a={a})" : self.joint_q_values[0][a] for a in range(self.n_actions)},
+            **{f"Q_{i}(a=0)" : self.joint_q_values[i][0] for i in range(self.n_players)},
             **{f"y_0(a={a})" : self.joint_cumulative_values[0][a] for a in range(self.n_actions)},
             **{f"pi_0(a={a})" : self.joint_policy_pi[0][a] for a in range(self.n_actions)},
         }

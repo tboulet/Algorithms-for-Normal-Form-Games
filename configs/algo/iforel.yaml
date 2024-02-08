@@ -9,5 +9,5 @@ algo_config :
     n_monte_carlo_q_evaluation : 20
     regularizer : entropy
   # Iterated FoReL Lyapunov parameters
-  n_timesteps_per_iterations : 100000
+  n_timesteps_per_iterations : 20000
   eta : 1
