@@ -1,8 +1,9 @@
 import random
-from typing import Dict, List, Optional, Tuple, Any, Callable
+from typing import Dict, List, Optional, Tuple, Any, Callable, Union
 from abc import ABC, abstractmethod
 
 import numpy as np
+from core.online_plotter import PointToPlot
 
 from core.typing import JointPolicy, Policy
 from games.base_nfg_game import BaseNFGGame
@@ -43,7 +44,7 @@ class BaseNFGAlgorithm(ABC):
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
-    ) -> Optional[Dict[str, float]]:
+    ) -> Optional[Dict[str, Union[float, PointToPlot]]]:
         """Learns from the experience of playing one episode.
 
         Args:
@@ -52,7 +53,8 @@ class BaseNFGAlgorithm(ABC):
             rewards (List[float]): the rewards obtained by the players
 
         Returns:
-            Optional[Dict[str, float]]: the metrics of the learning process, or None if no metrics returned
+            Optional[Dict[str, Union[float, PointToPlot]]]: the objects to log, as a dictionnary with
+            the name of the object as key and either a numerical metric of a point to plot as value.
         """
 
     @abstractmethod

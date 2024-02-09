@@ -21,6 +21,7 @@ from omegaconf import DictConfig, OmegaConf
 from core.utils import to_numeric, try_get_seed
 from core.typing import Policy, JointPolicy
 from core.online_plotter import OnlinePlotter, PointToPlot
+from core.nash import compute_nash_conv, compute_nash_equilibrium
 from algorithms import algo_name_to_nfg_solver
 from games import game_name_to_nfg_solver
 
@@ -68,8 +69,15 @@ def main(config: DictConfig):
         title=f"Policies Dynamics\n {run_name}",
         **plot_config,
     )
-    # TODO : plotter.add_point  # add Nash Equilibrium point
-
+    ne_joint_policy = compute_nash_equilibrium(game)
+    plotter.add_point(
+        PointToPlot(
+            name="NE",
+            coords=ne_joint_policy[:, 0],
+            color="orange",
+            marker="x",
+        )
+    )
     if do_tb:
         writer = SummaryWriter(log_dir=f"tensorboard/{run_name}")
     if do_wandb:
@@ -82,20 +90,24 @@ def main(config: DictConfig):
     for idx_episode_training in tqdm(range(n_episodes_training), disable=not tqdm_bar):
 
         # Update the dynamic tracker (for visualization of the policies dynamics)
-        probs_first_action=algo.get_inference_policies()[:2, 0]
-        plotter.add_point(PointToPlot(
-            name="previous trajectory",
-            coords=probs_first_action,
-            color="b",
-            marker="-",
-        ))
-        plotter.add_point(PointToPlot(
-            name="current trajectory",
-            coords=probs_first_action,
-            color="r",
-            marker="o",
-            is_unique=True,
-        ))
+        probs_first_action = algo.get_inference_policies()[:2, 0]
+        plotter.add_point(
+            PointToPlot(
+                name="trajectory",
+                coords=probs_first_action,
+                color="b",
+                marker="-",
+            )
+        )
+        plotter.add_point(
+            PointToPlot(
+                name="π",
+                coords=probs_first_action,
+                color="r",
+                marker="o",
+                is_unique=True,
+            )
+        )
         plotter.update_plot()
 
         # Choose a joint action
@@ -112,9 +124,18 @@ def main(config: DictConfig):
         )
 
         # Log the objects returned by the learn method
-        if isinstance(objects_to_log, dict) and idx_episode_training % frequency_metric == 0:
-            metrics_to_log = {k : v for k, v in objects_to_log.items() if isinstance(v, (int, float))}
-            points_to_plot = {k : v for k, v in objects_to_log.items() if isinstance(v, PointToPlot)}
+        if idx_episode_training % frequency_metric == 0:
+            metrics_to_log = {
+                k: v for k, v in objects_to_log.items() if isinstance(v, (int, float))
+            }
+            points_to_plot = {
+                k: v for k, v in objects_to_log.items() if isinstance(v, PointToPlot)
+            }
+            # Log other metrics (like Nash conv)
+            metrics_to_log["nash_conv"] = compute_nash_conv(
+                game, algo.get_inference_policies()
+            )
+
             # Log the metrics
             if do_tb:
                 for metric_name, metric_value in metrics_to_log.items():
@@ -128,8 +149,7 @@ def main(config: DictConfig):
             # Log the points
             for object_name, point in points_to_plot.items():
                 plotter.add_point(point)
-            
-            
+
     # At the end of the run, show and save the plot of the dynamics
     plotter.update_plot(force_update=True)
     plotter.save(path=f"logs/{run_name}/dynamics.png")

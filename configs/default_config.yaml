@@ -5,7 +5,7 @@ seed: Null
 # Display information
 frequency_metric : 9999
 do_cli : True
-frequency_cli : 99999
+frequency_cli : 99990
 do_tb : True
 do_wandb : False
 wandb_config:

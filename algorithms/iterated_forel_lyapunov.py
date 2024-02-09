@@ -83,7 +83,7 @@ class IteratedForel(Forel):
             {f"mu_0(a={a})": self.joint_policy_mu[0][a] for a in range(self.n_actions)}
         )
         metrics["mu_point"] = PointToPlot(
-            name="mu",
+            name="μ",
             coords=self.joint_policy_mu[:, 0],
             color="g",
             marker="o",
