@@ -10,8 +10,10 @@ algo_config :
     regularizer : entropy
   # Iterated FoReL Lyapunov parameters
   n_timesteps_per_iterations : 20000
+  do_mu_update : True
+  do_linear_interpolation_mu : True
   eta_scheduler_config:
-    type : exponential 
+    type : exponential    # use 'constant' if mu changes through training
     start_value : 1
     end_value : 0.05
     n_steps : 50000

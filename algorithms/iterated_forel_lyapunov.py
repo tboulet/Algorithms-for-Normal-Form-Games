@@ -20,6 +20,8 @@ class IteratedForel(Forel):
         forel_config: Dict[str, Any],
         # Iterated FoReL specific parameters
         n_timesteps_per_iterations: int,
+        do_mu_update: bool,
+        do_linear_interpolation_mu: bool,
         eta_scheduler_config: dict,
     ) -> None:
         """Initializes the Iterated FoReL algorithm.
@@ -33,6 +35,8 @@ class IteratedForel(Forel):
                 - n_monte_carlo_q_evaluation (int): the number of episodes used to estimate the Q values
                 - regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
             n_timesteps_per_iterations (int): the number of timesteps per iteration
+            do_mu_update (bool): whether to update the mu policy at each iteration, or not (in this case the mu used is the initial pi policy)
+            do_linear_interpolation_mu (bool): whether to use a linear interpolation between mu_{k-1} and mu_k, or not (in this case mu is brutally updated at the end of each iteration)
             eta_scheduler_config (dict): the configuration of the eta scheduler. It should contain the following keys:
                 - type (str): the type of scheduler (either "constant" or "linear")
                 - start_value (float): the initial value of eta
@@ -41,6 +45,8 @@ class IteratedForel(Forel):
         """
         super().__init__(**forel_config)
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
+        self.do_mu_update = do_mu_update
+        self.do_linear_interpolation_mu = do_linear_interpolation_mu
         self.eta_scheduler = Scheduler(**eta_scheduler_config)
 
     # Interface methods
@@ -55,7 +61,7 @@ class IteratedForel(Forel):
             n_players=self.n_players, n_actions=self.n_actions
         )
         self.joint_policy_mu = self.joint_policy_pi.copy()
-        
+
     def learn(
         self,
         joint_action: List[int],
@@ -64,31 +70,44 @@ class IteratedForel(Forel):
     ) -> None:
 
         # --- Modify the rewards ---
-        alpha = Scheduler(
-            type="linear",
-            start_value=self.iteration * self.n_timesteps_per_iterations,
-            end_value=(self.iteration + 1 / 2) * self.n_timesteps_per_iterations,
-            n_steps=self.n_timesteps_per_iterations / 2,
-        ).get_value(self.timestep - self.iteration * self.n_timesteps_per_iterations)
+        if self.do_mu_update:
 
-        for i in range(self.n_players):
-            lyap_reward_from_mu_k_minus_1 = self.lyapunov_reward(
-                player=i,
-                chosen_actions=joint_action,
-                pi=self.joint_policy_pi,
-                mu=self.joint_policy_mu_k_minus_1,
-                eta=self.eta_scheduler.get_value(self.timestep),
-            )
-            lyap_reward_from_mu = self.lyapunov_reward(
-                player=i,
-                chosen_actions=joint_action,
-                pi=self.joint_policy_pi,
-                mu=self.joint_policy_mu,
-                eta=self.eta_scheduler.get_value(self.timestep),
-            )
-            rewards[i] += (
-                1 - alpha
-            ) * lyap_reward_from_mu_k_minus_1 + alpha * lyap_reward_from_mu
+            # Compute the linear interpolation rate if needed
+            if self.do_linear_interpolation_mu:
+                alpha = Scheduler(
+                    type="linear",
+                    start_value=0,
+                    end_value=self.n_timesteps_per_iterations // 2,
+                    n_steps=self.n_timesteps_per_iterations / 2,
+                ).get_value(
+                    self.timestep - self.iteration * self.n_timesteps_per_iterations
+                )
+
+            # Add the Lyapunov reward to the rewards
+            for i in range(self.n_players):
+                lyap_reward_from_mu = self.lyapunov_reward(
+                    player=i,
+                    chosen_actions=joint_action,
+                    pi=self.joint_policy_pi,
+                    mu=self.joint_policy_mu,
+                    eta=self.eta_scheduler.get_value(self.timestep),
+                )
+
+                # If we use linear interpolation, we also need to compute the Lyapunov reward from mu_{k-1}
+                if self.do_linear_interpolation_mu:
+                    lyap_reward_from_mu_k_minus_1 = self.lyapunov_reward(
+                        player=i,
+                        chosen_actions=joint_action,
+                        pi=self.joint_policy_pi,
+                        mu=self.joint_policy_mu_k_minus_1,
+                        eta=self.eta_scheduler.get_value(self.timestep),
+                    )
+                    lyap_reward_from_mu = (
+                        1 - alpha
+                    ) * lyap_reward_from_mu_k_minus_1 + alpha * lyap_reward_from_mu
+
+                # Add the Lyapunov reward to the rewards
+                rewards[i] += lyap_reward_from_mu
 
         # --- Do one learning step of FoReL ---
         metrics = super().learn(joint_action=joint_action, probs=probs, rewards=rewards)

@@ -1,12 +1,12 @@
 # Training configuration for inRL
-n_episodes_training: 1000000
+n_episodes_training: 200000
 nash_computation_method : lagrangian
 seed: Null
 
 # Display information
 frequency_metric : 999
 do_cli : True
-frequency_cli : 99990
+frequency_cli : 9990
 do_tb : True
 do_wandb : False
 wandb_config:
@@ -16,7 +16,7 @@ plot_config :
   y_label : probability of taking first action for player 1
   do_plot_online : True
   update_frequency : 1000
-  pause_time : 0.01
+  pause_time : 0.001
 tqdm_bar : True
 
 
