@@ -157,17 +157,15 @@ class Forel(BaseNFGAlgorithm):
             self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
             self.timestep += 1
 
-        return {
-            **{f"Q_{i}(a=0)": self.joint_q_values[i][0] for i in range(self.n_players)},
-            **{
-                f"y_0(a={a})": self.joint_cumulative_values[0][a]
-                for a in range(self.n_actions)
-            },
-            **{
-                f"pi_0(a={a})": self.joint_policy_pi[0][a]
-                for a in range(self.n_actions)
-            },
-        }
+        objects_to_log = {}
+        for i in range(self.n_players):
+            for a in range(self.n_actions):
+                objects_to_log[f"Q_{i}/Q_{i}(a={a})"] = self.joint_q_values[i][a]
+                objects_to_log[f"pi_{i}/pi_{i}(a={a})"] = self.joint_policy_pi[i][a]
+                objects_to_log[f"cum_values_{i}/cum_values_{i}(a={a})"] = self.joint_cumulative_values[i][a]
+                
+        return objects_to_log
+    
 
     def get_inference_policies(
         self,

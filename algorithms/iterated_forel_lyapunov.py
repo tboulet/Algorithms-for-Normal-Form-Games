@@ -123,9 +123,9 @@ class IteratedForel(Forel):
             )
 
         # Add the mu probs to the metrics as well as the current point
-        metrics.update(
-            {f"mu_0(a={a})": self.joint_policy_mu[0][a] for a in range(self.n_actions)}
-        )
+        for i in range(self.n_players):
+            for a in range(self.n_actions):
+                metrics[f"mu_{i}/mu_{i}_{a}"] = self.joint_policy_mu[i][a]
         metrics["mu_k"] = PointToPlot(
             name="μ_k",
             coords=self.joint_policy_mu[:, 0],
@@ -133,13 +133,14 @@ class IteratedForel(Forel):
             marker="o",
             is_unique=True,
         )
-        metrics["mu_{k-1}"] = PointToPlot(
-            name="μ_{k-1}",
-            coords=self.joint_policy_mu_k_minus_1[:, 0],
-            color="g",
-            marker="x",
-            is_unique=True,
-        )
+        if self.do_mu_update and self.do_linear_interpolation_mu:
+            metrics["mu_{k-1}"] = PointToPlot(
+                name="μ_{k-1}",
+                coords=self.joint_policy_mu_k_minus_1[:, 0],
+                color="g",
+                marker="x",
+                is_unique=True,
+            )
         return metrics
 
     # Helper methods
