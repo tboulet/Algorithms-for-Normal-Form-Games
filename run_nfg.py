@@ -34,9 +34,10 @@ def main(config: DictConfig):
 
     # Get the config parameters
     n_episodes_training = to_numeric(config["n_episodes_training"])
+    nash_computation_method = config["nash_computation_method"]
     seed = try_get_seed(config)
 
-    frequency_metric = config["frequency_metric"]
+    frequency_metric = to_numeric(config["frequency_metric"])
     do_cli = config["do_cli"]
     frequency_cli = to_numeric(config["frequency_cli"])
     do_tb = config["do_tb"]
@@ -69,7 +70,7 @@ def main(config: DictConfig):
         title=f"Policies Dynamics\n {run_name}",
         **plot_config,
     )
-    ne_joint_policy = compute_nash_equilibrium(game)
+    ne_joint_policy = compute_nash_equilibrium(game, method=nash_computation_method)
     plotter.add_point(
         PointToPlot(
             name="NE",
