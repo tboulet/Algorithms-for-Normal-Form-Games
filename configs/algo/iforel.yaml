@@ -10,4 +10,10 @@ algo_config :
     regularizer : entropy
   # Iterated FoReL Lyapunov parameters
   n_timesteps_per_iterations : 20000
-  eta : 1
+  eta_scheduler_config:
+    type : exponential 
+    start_value : 1
+    end_value : 0.05
+    n_steps : 50000
+    
+    
