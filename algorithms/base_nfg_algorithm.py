@@ -171,8 +171,8 @@ class BaseNFGAlgorithm(ABC):
             float: the Q value of the player playing the action in the joint policy
         """
         assert (
-            game.num_players() == 2 and game.num_distinct_actions() == 2
-        ), "This method is only implemented for 2-player 2-action games yet"
+            game.num_players() == 2
+        ), "This method is only implemented for 2-player games"
         q_value = 0
         for b in range(game.num_distinct_actions()):
             joint_action = [action, b] if player == 0 else [b, action]
