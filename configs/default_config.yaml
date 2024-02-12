@@ -1,11 +1,11 @@
 # Training configuration for inRL
-n_episodes_training: 200000
+n_episodes_training: 1000000
 nash_computation_method : lagrangian
 seed: Null
 
 # Display information
 frequency_metric : 999
-do_cli : True
+do_cli : False
 frequency_cli : 9990
 do_tb : True
 do_wandb : False

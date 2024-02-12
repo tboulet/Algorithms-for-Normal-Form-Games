@@ -143,7 +143,7 @@ class BaseNFGAlgorithm(ABC):
         joint_action_probs = []
         for i in range(len(joint_policy)):
             if len(joint_policy[i]) == 2:
-                action = int(random.random() < joint_policy[i][0])
+                action = int(random.random() > joint_policy[i][0])
             else:
                 action = random.choices(
                     range(len(joint_policy[i])), weights=joint_policy[i]
