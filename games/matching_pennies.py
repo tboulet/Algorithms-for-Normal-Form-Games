@@ -20,4 +20,4 @@ class MatchingPennies(BaseNFGGame):
         return 2
 
     def get_utility_matrix(self) -> np.ndarray:
-        return np.array(self.payoff_matrix)
+        return np.array(self.payoff_matrix, dtype=float)
