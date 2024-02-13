@@ -21,13 +21,13 @@ pip install -r requirements.txt
 For training your algorithms on a Normal Form Game, run the following command:
 
 ```bash
-python run_nfg.py algo=<algo tag> game=<game tag>
+python run.py algo=<algo tag> game=<game tag>
 ```
 
 For example, to train the FoReL algorithm on the Matching Pennies game, run :
 
 ```bash
-python run_nfg.py algo=forel game=mp
+python run.py algo=forel game=mp
 ```
 
 ### Algorithms
@@ -53,7 +53,7 @@ Currently the following games are implemented :
 We use Hydra as our config system. The config folder is `./configs/`. You can modify the config (logging, metrics, number of training episodes) from the `default_config.yaml` file. You can also create your own config file and specify it with the `--config-name` argument :
 
 ```bash
-python run_nfg.py algo=forel game=mp --config-name=my_config_name
+python run.py algo=forel game=mp --config-name=my_config_name
 ```
 
 Advice : create an alias for the command above this.
