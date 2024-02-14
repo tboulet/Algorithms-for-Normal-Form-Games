@@ -37,6 +37,7 @@ class IteratedForel(Forel):
         super().__init__(**forel_config)
         self.n_timesteps_per_iterations = n_timesteps_per_iterations
         self.eta = eta
+        self.lyapunov = True
 
     # Interface methods
 
@@ -47,7 +48,7 @@ class IteratedForel(Forel):
         super().initialize_algorithm(game=game)
         self.iteration: int = 0
         self.joint_policy_mu = self.initialize_randomly_joint_policy(
-            n_players=self.n_players, n_actions=self.n_actions
+            n_actions=self.n_actions
         )
 
     def learn(
@@ -138,21 +139,17 @@ class IteratedForel(Forel):
 
         return returns_modified
 
-    def get_model_based_q_value(
-        self, game: BaseNFGGame, player: int, action: int, joint_policy: JointPolicy
-    ) -> float:
-        q_value = super().get_model_based_q_value(game, player, action, joint_policy)
-        # Add the expected Lyapunov reward modification
-        opponent_player = 1 - player
-        for b in range(game.num_distinct_actions()):
-            q_value += joint_policy[1 - player][b] * (
-                -self.eta
-                * np.log(
-                    self.joint_policy_pi[player][action]
-                    / self.joint_policy_mu[player][action]
-                )
-            ) + self.eta * np.log(
-                self.joint_policy_pi[opponent_player][b]
-                / self.joint_policy_mu[opponent_player][b]
+    def transform_q_value(self) -> None:
+        for player in range(len(self.joint_q_values)):
+            opponent_policy = self.joint_policy_pi[1 - player]
+            oppenent_term = (
+                opponent_policy
+                * np.log(opponent_policy / self.joint_policy_mu[1 - player]).sum()
             )
-        return q_value
+            player_term = np.log(
+                self.joint_policy_pi[player] / self.joint_policy_mu[player]
+            )
+
+            self.joint_q_values[player] = self.joint_q_values[player] + self.eta * (
+                -player_term + oppenent_term
+            )

@@ -9,12 +9,8 @@ import copy
 def get_expected_payoff(game: BaseNFGGame, joint_policy: JointPolicy) -> np.ndarray:
     utility_matrix = game.get_utility_matrix()
 
-    expected_payoff = (
-        utility_matrix * np.array(joint_policy[0])[:, np.newaxis, np.newaxis]
-    )
-    expected_payoff = (
-        expected_payoff * np.array(joint_policy[1])[np.newaxis, :, np.newaxis]
-    )
+    expected_payoff = utility_matrix * joint_policy[0][:, np.newaxis, np.newaxis]
+    expected_payoff = expected_payoff * joint_policy[1][np.newaxis, :, np.newaxis]
 
     return np.sum(expected_payoff, axis=(0, 1))
 
@@ -32,22 +28,10 @@ def get_expected_strategy_payoff(
 def get_best_response(
     game: BaseNFGGame, player: int, joint_policy: JointPolicy
 ) -> tuple[List[int], float]:
-    utility_matrix = game.get_utility_matrix()
+    model_based_q_value = game.get_model_based_q_value(game, player, joint_policy)
+    max_utility = np.max(model_based_q_value)
 
-    if player == 0:
-        weighted_utility = (
-            utility_matrix[:, :, 0] * np.array(joint_policy[1])[:, np.newaxis]
-        )
-        weighted_utility = np.sum(weighted_utility, axis=0)
-    else:
-        weighted_utility = (
-            utility_matrix[:, :, 1] * np.array(joint_policy[0])[np.newaxis, :]
-        )
-        weighted_utility = np.sum(weighted_utility, axis=1)
-
-    max_utility = np.max(weighted_utility)
-
-    return np.nonzero(weighted_utility == max_utility)[0], max_utility
+    return np.nonzero(model_based_q_value == max_utility)[0], max_utility
 
 
 def compute_nash_conv(game: BaseNFGGame, joint_policy: JointPolicy) -> float:

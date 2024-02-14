@@ -38,9 +38,7 @@ class PolicyGradient(BaseNFGAlgorithm):
         self.n_players = game.num_players()
 
         self.joint_logits = np.exp(
-            self.initialize_randomly_joint_policy(
-                n_players=self.n_players, n_actions=self.n_actions
-            )
+            self.initialize_randomly_joint_policy(n_actions=self.n_actions)
         )
         self.joint_q_values = np.zeros((self.n_players, self.n_actions))
 
@@ -82,16 +80,15 @@ class PolicyGradient(BaseNFGAlgorithm):
 
         elif self.q_value_estimation_method == "model-based":
             # Method 2 : get Q values from the game object (model-based)
+            joint_policy = self.get_softmax_joint_policy_from_logits(
+                joint_logits=self.joint_logits
+            )
             for i in range(self.n_players):
-                for a in range(self.n_actions):
-                    self.joint_q_values[i][a] = self.get_model_based_q_value(
-                        game=self.game,
-                        player=i,
-                        action=a,
-                        joint_policy=self.get_softmax_joint_policy_from_logits(
-                            joint_logits=self.joint_logits
-                        ),
-                    )
+                self.joint_q_values[i] = self.game.get_model_based_q_value(
+                    player=i,
+                    action=joint_action[i],
+                    joint_policy=joint_policy,
+                )
             has_estimated_q_values = True
 
         if has_estimated_q_values:

@@ -1,21 +1,27 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from typing import Any, List, Callable, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional
 
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from games.base_nfg_game import BaseNFGGame
-from core.typing import JointPolicy, Policy
+from core.typing import (
+    JointPolicy,
+    Policy,
+    DynamicMethod,
+    QValueEstimationMethod,
+    Regularizer,
+)
 
 
 class Forel(BaseNFGAlgorithm):
     def __init__(
         self,
-        q_value_estimation_method: str,
-        dynamics_method: str,
+        q_value_estimation_method: QValueEstimationMethod,
+        dynamics_method: DynamicMethod,
         learning_rate_rd: float,
         learning_rate_cum_values: float,
         n_monte_carlo_q_evaluation: int,
-        regularizer: str,
+        regularizer: Regularizer,
     ) -> None:
         """Initializes the Follow the Regularized Leader (FoReL) algorithm.
         This algorithm try to maximize an exploitation term that consist of a (potentially weighted) sum of the Q values and
@@ -35,6 +41,7 @@ class Forel(BaseNFGAlgorithm):
         self.learning_rate_cum_values = learning_rate_cum_values
         self.n_monte_carlo_q_evaluation = n_monte_carlo_q_evaluation
         self.regularizer = regularizer
+        self.lyapunov = False
 
     # Interface methods
 
@@ -48,18 +55,19 @@ class Forel(BaseNFGAlgorithm):
         self.n_players = game.num_players()
 
         self.joint_policy_pi = (
-            self.initialize_randomly_joint_policy(
-                n_players=self.n_players, n_actions=self.n_actions
-            )
+            self.initialize_randomly_joint_policy(n_actions=self.n_actions)
             if joint_policy_pi is None
-            else joint_policy_pi
+            else [np.array(policy) for policy in joint_policy_pi]
         )
-        self.joint_cumulative_values = np.zeros((self.n_players, self.n_actions))
-        self.joint_q_values = np.zeros((self.n_players, self.n_actions))
-        self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
+        self.joint_cumulative_values = [
+            np.zeros(n_action) for n_action in self.n_actions
+        ]
+        self.joint_q_values = [np.zeros(n_action) for n_action in self.n_actions]
+        self.joint_count_seen_actions = [
+            np.zeros(n_action) for n_action in self.n_actions
+        ]
 
         self.timestep: int = 0
-        self.monte_carlo_q_evaluation_episode_idx: int = 0
 
     def choose_joint_action(
         self,
@@ -78,14 +86,15 @@ class Forel(BaseNFGAlgorithm):
 
         # Those two booleans control which part of the algorithm is executed
         has_estimated_q_values = False
+        self.monte_carlo_q_evaluation_episode_idx: int = 0
 
         # --- Estimate Q values ---
-        if self.q_value_estimation_method == "mc":
+        if self.q_value_estimation_method == QValueEstimationMethod.MC:
             # Method 1 : MC evaluation
             # Incremental update of the Q values
             for i in range(self.n_players):
                 if self.joint_count_seen_actions[i][joint_action[i]] == 0:
-                    self.joint_q_values[i][joint_action[i]] = rewards[i]
+                    self.joint_q_values[i][joint_action[i]] = [i]
                 else:
                     self.joint_q_values[i][joint_action[i]] += (
                         rewards[i] - self.joint_q_values[i][joint_action[i]]
@@ -100,16 +109,16 @@ class Forel(BaseNFGAlgorithm):
                 self.monte_carlo_q_evaluation_episode_idx = 0
                 has_estimated_q_values = True
 
-        elif self.q_value_estimation_method == "model-based":
+        elif self.q_value_estimation_method == QValueEstimationMethod.MODEL_BASED:
             # Method 2 : Model-based exact evaluation
             for i in range(self.n_players):
-                for a in range(self.n_actions):
-                    self.joint_q_values[i][a] = self.get_model_based_q_value(
-                        game=self.game,
-                        player=i,
-                        action=a,
-                        joint_policy=self.joint_policy_pi,
-                    )
+                self.joint_q_values[i] = self.game.get_model_based_q_value(
+                    player=i,
+                    action=joint_action[i],
+                    joint_policy=self.joint_policy_pi,
+                )
+            if self.lyapunov:
+                self.transform_q_value()
             has_estimated_q_values = True
 
         else:
@@ -196,3 +205,6 @@ class Forel(BaseNFGAlgorithm):
             raise NotImplementedError
         else:
             raise NotImplementedError
+
+    def transform_q_value(self):
+        raise ValueError("This function only exists for forel lyapunov")
