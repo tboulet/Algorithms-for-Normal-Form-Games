@@ -189,11 +189,11 @@ class Forel(BaseNFGAlgorithm):
             **{f"Q_{i}(a=0)": self.joint_q_values[i][0] for i in range(self.n_players)},
             **{
                 f"y_0(a={a})": self.joint_cumulative_values[0][a]
-                for a in range(self.n_actions)
+                for a in range(self.n_actions[0])
             },
             **{
                 f"pi_0(a={a})": self.joint_policy_pi[0][a]
-                for a in range(self.n_actions)
+                for a in range(self.n_actions[0])
             },
         }
 

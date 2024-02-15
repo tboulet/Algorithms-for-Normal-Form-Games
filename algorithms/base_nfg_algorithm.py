@@ -84,7 +84,7 @@ class BaseNFGAlgorithm(ABC):
             Policy: the initialized joint policy
         """
         joint_policy = [
-            RANDOM_GENERATOR.rand(n_player_actions) for n_player_actions in n_actions
+            RANDOM_GENERATOR.random(n_player_actions) for n_player_actions in n_actions
         ]
 
         for i in range(len(joint_policy)):

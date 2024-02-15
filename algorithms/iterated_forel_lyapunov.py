@@ -81,7 +81,10 @@ class IteratedForel(Forel):
 
         # Add the mu probs to the metrics as well as the current point
         metrics.update(
-            {f"mu_0(a={a})": self.joint_policy_mu[0][a] for a in range(self.n_actions)}
+            {
+                f"mu_0(a={a})": self.joint_policy_mu[0][a]
+                for a in range(self.n_actions[0])
+            }
         )
         metrics["mu_point"] = PointToPlot(
             name="mu",
