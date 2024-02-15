@@ -28,12 +28,12 @@ class Forel(BaseNFGAlgorithm):
         exploration terms that are the regularizers (e.g. the entropy)
 
         Args:
-            q_value_estimation_method (str): the method used to estimate the Q values (either "mc" or "model-based")
-            dynamics_method (str): the method used to update the policy (either "softmax" or "rd" (Replicator Dynamics))
+            q_value_estimation_method (QValueEstimationMethod): the method used to estimate the Q values (either "mc" or "model-based")
+            dynamics_method (DynamicMethod): the method used to update the policy (either "softmax" or "rd" (Replicator Dynamics))
             learning_rate_rd (float): the learning rate used to update the policy (only used if dynamics_method == "rd")
             learning_rate_cum_values (float): the learning rate used to update the cumulative values (only used if dynamics_method == "softmax")
             n_monte_carlo_q_evaluation (int): the number of episodes used to estimate the Q values
-            regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
+            regularizer (Regularizer): the regularizer function tag (for now either "entropy" or "l2")
         """
         self.q_value_estimation_method = q_value_estimation_method
         self.dynamics_method = dynamics_method
@@ -106,10 +106,10 @@ class Forel(BaseNFGAlgorithm):
 
         return False
 
-    def transform_q_value(self):
+    def transform_q_value(self) -> None:
         raise ValueError("This function only exists for forel lyapunov")
 
-    def compute_model_based_q_values(self):
+    def compute_model_based_q_values(self) -> None:
         for i in range(self.n_players):
             self.joint_q_values[i] = self.game.get_model_based_q_value(
                 player=i,

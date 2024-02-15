@@ -2,9 +2,8 @@ import sys
 from time import sleep
 from matplotlib import pyplot as plt
 import numpy as np
-from typing import Any, Dict, List, Callable, Tuple
+from typing import Any, Dict, List, Optional
 
-from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from algorithms.forel import Forel
 from core.online_plotter import PointToPlot
 from games.base_nfg_game import BaseNFGGame
@@ -44,8 +43,9 @@ class IteratedForel(Forel):
     def initialize_algorithm(
         self,
         game: BaseNFGGame,
+        joint_policy_pi: Optional[JointPolicy] = None,
     ) -> None:
-        super().initialize_algorithm(game=game)
+        super().initialize_algorithm(game=game, joint_policy_pi=joint_policy_pi)
         self.iteration: int = 0
         self.joint_policy_mu = self.initialize_randomly_joint_policy(
             n_actions=self.n_actions
@@ -96,7 +96,7 @@ class IteratedForel(Forel):
 
     def modify_rewards(
         self,
-        returns: List[float],
+        returns: np.ndarray,
         chosen_actions: List[int],
         pi: JointPolicy,
         mu: JointPolicy,
@@ -105,7 +105,7 @@ class IteratedForel(Forel):
         """Implements the modification of rewards for the Forel algorithm.
 
         Args:
-            returns (List[float]): the rewards obtained by the players
+            returns (np.ndarray): the rewards obtained by the players
             chosen_actions (List[int]): the actions chosen by the players
             pi (JointPolicy): the joint policy used to choose the actions
             mu (JointPolicy): the regularization joint policy
@@ -123,18 +123,13 @@ class IteratedForel(Forel):
 
         eps = sys.float_info.epsilon
         for i in range(n_players):
-            pi_i_a = pi[i][chosen_actions[i]]
-            pi_minus_i_a = np.prod(
-                [pi[j][chosen_actions[j]] for j in range(n_players) if j != i]
-            )
-            mu_i_a = mu[i][chosen_actions[i]]
-            mu_minus_i_a = np.prod(
-                [mu[j][chosen_actions[j]] for j in range(n_players) if j != i]
-            )
+            j = 1 - i
+            act_i = chosen_actions[i]
+            act_j = chosen_actions[j]
             returns_modified[i] = (
                 returns_modified[i]
-                - eta * np.log(pi_i_a / mu_i_a + eps)
-                + eta * np.log(pi_minus_i_a / mu_minus_i_a + eps)
+                - eta * np.log(pi[i][act_i] / mu[i][act_i] + eps)
+                + eta * np.log(pi[j][act_j] / mu[j][act_j] + eps)
             )
 
         return returns_modified
