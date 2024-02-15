@@ -1,5 +1,5 @@
 import random
-from typing import Dict, List, Optional, Tuple, Any, Callable
+from typing import Dict, List, Optional, Tuple, Any
 from abc import ABC, abstractmethod
 
 import numpy as np

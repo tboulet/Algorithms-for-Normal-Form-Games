@@ -68,6 +68,7 @@ class Forel(BaseNFGAlgorithm):
         ]
 
         self.timestep: int = 0
+        self.monte_carlo_q_evaluation_episode_idx: int = 0
 
     def choose_joint_action(
         self,
@@ -76,6 +77,75 @@ class Forel(BaseNFGAlgorithm):
         return self.sample_joint_action_probs_from_policy(
             joint_policy=self.joint_policy_pi
         )
+
+    def monte_carlo_step(self, joint_action: List[int], rewards: List[float]) -> bool:
+        """Update the Q values using Monte Carlo evaluation
+
+        Args:
+            joint_action (List[int]): the joint actions played
+            rewards (List[float]): the rewards obtained by the players
+
+        Returns:
+            bool: True if the monte carlo evaluation is finished, False otherwise
+
+        """
+        for i in range(self.n_players):
+            if self.joint_count_seen_actions[i][joint_action[i]] == 0:
+                self.joint_q_values[i][joint_action[i]] = rewards[i]
+            else:
+                self.joint_q_values[i][joint_action[i]] += (
+                    rewards[i] - self.joint_q_values[i][joint_action[i]]
+                ) / (self.joint_count_seen_actions[i][joint_action[i]] + 1)
+            self.joint_count_seen_actions[i][joint_action[i]] += 1
+
+        # Increment monte carlo q evaluation episode index
+        self.monte_carlo_q_evaluation_episode_idx += 1
+        if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
+            self.monte_carlo_q_evaluation_episode_idx = 0
+            return True
+
+        return False
+
+    def transform_q_value(self):
+        raise ValueError("This function only exists for forel lyapunov")
+
+    def compute_model_based_q_values(self):
+        for i in range(self.n_players):
+            self.joint_q_values[i] = self.game.get_model_based_q_value(
+                player=i,
+                joint_policy=self.joint_policy_pi,
+            )
+        if self.lyapunov:
+            self.transform_q_value()
+
+    def update_policy(self):
+        if self.dynamics_method == DynamicMethod.SOFTMAX:
+            # Method 1 : pi_i = softmax(cum_values_i)
+            for i in range(self.n_players):
+                self.joint_cumulative_values[i] += (
+                    self.learning_rate_cum_values * self.joint_q_values[i]
+                )
+                self.joint_policy_pi[i] = self.optimize_regularized_objective_function(
+                    cum_values=self.joint_cumulative_values[i],
+                    regularizer=self.regularizer,
+                )
+
+        elif self.dynamics_method == DynamicMethod.RD:
+            # Method 2 : Replicator Dynamics
+            for i in range(self.n_players):
+                state_value = np.sum(
+                    self.joint_q_values[i] * self.joint_policy_pi[i]
+                )  # V_t = sum_a Q_t(a) * pi_t(a)
+                advantage_values = (
+                    self.joint_q_values[i] - state_value
+                )  # A_t(a) = Q_t(a) - V_t
+                self.joint_policy_pi[i] += (
+                    self.learning_rate_rd
+                    * advantage_values[i]
+                    * self.joint_policy_pi[i]
+                )
+                # Normalize policy in case of numerical errors
+                self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
 
     def learn(
         self,
@@ -86,39 +156,17 @@ class Forel(BaseNFGAlgorithm):
 
         # Those two booleans control which part of the algorithm is executed
         has_estimated_q_values = False
-        self.monte_carlo_q_evaluation_episode_idx: int = 0
 
         # --- Estimate Q values ---
         if self.q_value_estimation_method == QValueEstimationMethod.MC:
             # Method 1 : MC evaluation
-            # Incremental update of the Q values
-            for i in range(self.n_players):
-                if self.joint_count_seen_actions[i][joint_action[i]] == 0:
-                    self.joint_q_values[i][joint_action[i]] = [i]
-                else:
-                    self.joint_q_values[i][joint_action[i]] += (
-                        rewards[i] - self.joint_q_values[i][joint_action[i]]
-                    ) / (self.joint_count_seen_actions[i][joint_action[i]] + 1)
-                self.joint_count_seen_actions[i][joint_action[i]] += 1
-            # Increment monte carlo q evaluation episode index
-            self.monte_carlo_q_evaluation_episode_idx += 1
-            if (
-                self.monte_carlo_q_evaluation_episode_idx
-                == self.n_monte_carlo_q_evaluation
-            ):
-                self.monte_carlo_q_evaluation_episode_idx = 0
-                has_estimated_q_values = True
+            has_estimated_q_values = self.monte_carlo_step(
+                joint_action=joint_action, rewards=rewards
+            )
 
         elif self.q_value_estimation_method == QValueEstimationMethod.MODEL_BASED:
             # Method 2 : Model-based exact evaluation
-            for i in range(self.n_players):
-                self.joint_q_values[i] = self.game.get_model_based_q_value(
-                    player=i,
-                    action=joint_action[i],
-                    joint_policy=self.joint_policy_pi,
-                )
-            if self.lyapunov:
-                self.transform_q_value()
+            self.compute_model_based_q_values()
             has_estimated_q_values = True
 
         else:
@@ -128,42 +176,13 @@ class Forel(BaseNFGAlgorithm):
 
         # --- Update the policy ---
         if has_estimated_q_values:
-
-            if self.dynamics_method == "softmax":
-                # Method 1 : pi_i = softmax(cum_values_i)
-                for i in range(self.n_players):
-                    self.joint_cumulative_values[i] += (
-                        self.learning_rate_cum_values * self.joint_q_values[i]
-                    )
-                for i in range(self.n_players):
-                    self.joint_policy_pi[i] = (
-                        self.optimize_regularized_objective_function(
-                            cum_values=self.joint_cumulative_values[i],
-                            regularizer=self.regularizer,
-                        )
-                    )
-
-            elif self.dynamics_method == "rd":
-                # Method 2 : Replicator Dynamics
-                state_values = np.sum(
-                    self.joint_q_values * self.joint_policy_pi, axis=1
-                )  # V_t = sum_a Q_t(a) * pi_t(a)
-                advantage_values = (
-                    self.joint_q_values - state_values[:, None]
-                )  # A_t(a) = Q_t(a) - V_t
-                for i in range(self.n_players):
-                    for a in range(self.n_actions):
-                        self.joint_policy_pi[i][a] += (
-                            self.learning_rate_rd
-                            * advantage_values[i][a]
-                            * self.joint_policy_pi[i][a]
-                        )
-                    # Normalize policy in case of numerical errors
-                    self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
+            self.update_policy()
 
             # Increment timestep and reset the Q values and count seen actions
-            self.joint_q_values = np.zeros((self.n_players, self.n_actions))
-            self.joint_count_seen_actions = np.zeros((self.n_players, self.n_actions))
+            self.joint_q_values = [np.zeros(n_action) for n_action in self.n_actions]
+            self.joint_count_seen_actions = [
+                np.zeros(n_action) for n_action in self.n_actions
+            ]
             self.timestep += 1
 
         return {
@@ -188,7 +207,7 @@ class Forel(BaseNFGAlgorithm):
     def optimize_regularized_objective_function(
         self,
         cum_values: List[List[float]],
-        regularizer: str,
+        regularizer: Regularizer,
     ) -> Policy:
         """Apply dynamics
 
@@ -199,12 +218,9 @@ class Forel(BaseNFGAlgorithm):
         Returns:
             Policy: an agent-policy that is the result of the optimization step
         """
-        if regularizer == "entropy":
+        if regularizer == Regularizer.ENTROPY:
             return self.get_softmax_policy_from_logits(logits=cum_values)
-        elif regularizer == "l2":
-            raise NotImplementedError
+        elif regularizer == Regularizer.L2:
+            raise NotImplementedError("L2 regularizer not implemented yet")
         else:
-            raise NotImplementedError
-
-    def transform_q_value(self):
-        raise ValueError("This function only exists for forel lyapunov")
+            raise NotImplementedError(f"Unknown regularizer function{regularizer}")
