@@ -82,20 +82,26 @@ def main(config: DictConfig):
     for idx_episode_training in tqdm(range(n_episodes_training), disable=not tqdm_bar):
 
         # Update the dynamic tracker (for visualization of the policies dynamics)
-        probs_first_action=algo.get_inference_policies()[:2, 0]
-        plotter.add_point(PointToPlot(
-            name="previous trajectory",
-            coords=probs_first_action,
-            color="b",
-            marker="-",
-        ))
-        plotter.add_point(PointToPlot(
-            name="current trajectory",
-            coords=probs_first_action,
-            color="r",
-            marker="o",
-            is_unique=True,
-        ))
+        probs_first_action = [
+            player_action[0] for player_action in algo.get_inference_policies()
+        ]
+        plotter.add_point(
+            PointToPlot(
+                name="previous trajectory",
+                coords=probs_first_action,
+                color="b",
+                marker="-",
+            )
+        )
+        plotter.add_point(
+            PointToPlot(
+                name="current trajectory",
+                coords=probs_first_action,
+                color="r",
+                marker="o",
+                is_unique=True,
+            )
+        )
         plotter.update_plot()
 
         # Choose a joint action
@@ -112,9 +118,16 @@ def main(config: DictConfig):
         )
 
         # Log the objects returned by the learn method
-        if isinstance(objects_to_log, dict) and idx_episode_training % frequency_metric == 0:
-            metrics_to_log = {k : v for k, v in objects_to_log.items() if isinstance(v, (int, float))}
-            points_to_plot = {k : v for k, v in objects_to_log.items() if isinstance(v, PointToPlot)}
+        if (
+            isinstance(objects_to_log, dict)
+            and idx_episode_training % frequency_metric == 0
+        ):
+            metrics_to_log = {
+                k: v for k, v in objects_to_log.items() if isinstance(v, (int, float))
+            }
+            points_to_plot = {
+                k: v for k, v in objects_to_log.items() if isinstance(v, PointToPlot)
+            }
             # Log the metrics
             if do_tb:
                 for metric_name, metric_value in metrics_to_log.items():
@@ -128,8 +141,7 @@ def main(config: DictConfig):
             # Log the points
             for object_name, point in points_to_plot.items():
                 plotter.add_point(point)
-            
-            
+
     # At the end of the run, show and save the plot of the dynamics
     plotter.update_plot(force_update=True)
     plotter.save(path=f"logs/{run_name}/dynamics.png")

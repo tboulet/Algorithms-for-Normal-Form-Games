@@ -1,15 +1,11 @@
 import sys
-from time import sleep
-from matplotlib import pyplot as plt
 import numpy as np
-from typing import Any, Dict, List, Callable, Tuple
+from typing import Any, Dict, List, Optional
 
-from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from algorithms.forel import Forel
 from core.online_plotter import PointToPlot
 from games.base_nfg_game import BaseNFGGame
-from core.typing import JointPolicy, Policy
-from core.utils import to_numeric
+from core.typing import JointPolicy
 
 
 class IteratedForel(Forel):
@@ -37,17 +33,19 @@ class IteratedForel(Forel):
         super().__init__(**forel_config)
         self.n_timesteps_per_iterations = n_timesteps_per_iterations
         self.eta = eta
+        self.lyapunov = True
 
     # Interface methods
 
     def initialize_algorithm(
         self,
         game: BaseNFGGame,
+        joint_policy_pi: Optional[JointPolicy] = None,
     ) -> None:
-        super().initialize_algorithm(game=game)
+        super().initialize_algorithm(game=game, joint_policy_pi=joint_policy_pi)
         self.iteration: int = 0
         self.joint_policy_mu = self.initialize_randomly_joint_policy(
-            n_players=self.n_players, n_actions=self.n_actions
+            n_actions=self.n_actions
         )
 
     def learn(
@@ -80,11 +78,14 @@ class IteratedForel(Forel):
 
         # Add the mu probs to the metrics as well as the current point
         metrics.update(
-            {f"mu_0(a={a})": self.joint_policy_mu[0][a] for a in range(self.n_actions)}
+            {
+                f"mu_0(a={a})": self.joint_policy_mu[0][a]
+                for a in range(self.n_actions[0])
+            }
         )
         metrics["mu_point"] = PointToPlot(
             name="mu",
-            coords=self.joint_policy_mu[:, 0],
+            coords=[mu_i[0] for mu_i in self.joint_policy_mu],
             color="g",
             marker="o",
             is_unique=True,
@@ -95,7 +96,7 @@ class IteratedForel(Forel):
 
     def modify_rewards(
         self,
-        returns: List[float],
+        returns: np.ndarray,
         chosen_actions: List[int],
         pi: JointPolicy,
         mu: JointPolicy,
@@ -104,7 +105,7 @@ class IteratedForel(Forel):
         """Implements the modification of rewards for the Forel algorithm.
 
         Args:
-            returns (List[float]): the rewards obtained by the players
+            returns (np.ndarray): the rewards obtained by the players
             chosen_actions (List[int]): the actions chosen by the players
             pi (JointPolicy): the joint policy used to choose the actions
             mu (JointPolicy): the regularization joint policy
@@ -122,37 +123,28 @@ class IteratedForel(Forel):
 
         eps = sys.float_info.epsilon
         for i in range(n_players):
-            pi_i_a = pi[i][chosen_actions[i]]
-            pi_minus_i_a = np.prod(
-                [pi[j][chosen_actions[j]] for j in range(n_players) if j != i]
-            )
-            mu_i_a = mu[i][chosen_actions[i]]
-            mu_minus_i_a = np.prod(
-                [mu[j][chosen_actions[j]] for j in range(n_players) if j != i]
-            )
+            j = 1 - i
+            act_i = chosen_actions[i]
+            act_j = chosen_actions[j]
             returns_modified[i] = (
                 returns_modified[i]
-                - eta * np.log(pi_i_a / mu_i_a + eps)
-                + eta * np.log(pi_minus_i_a / mu_minus_i_a + eps)
+                - eta * np.log(pi[i][act_i] / mu[i][act_i] + eps)
+                + eta * np.log(pi[j][act_j] / mu[j][act_j] + eps)
             )
 
         return returns_modified
 
-    def get_model_based_q_value(
-        self, game: BaseNFGGame, player: int, action: int, joint_policy: JointPolicy
-    ) -> float:
-        q_value = super().get_model_based_q_value(game, player, action, joint_policy)
-        # Add the expected Lyapunov reward modification
-        opponent_player = 1 - player
-        for b in range(game.num_distinct_actions()):
-            q_value += joint_policy[1 - player][b] * (
-                -self.eta
-                * np.log(
-                    self.joint_policy_pi[player][action]
-                    / self.joint_policy_mu[player][action]
-                )
-            ) + self.eta * np.log(
-                self.joint_policy_pi[opponent_player][b]
-                / self.joint_policy_mu[opponent_player][b]
+    def transform_q_value(self) -> None:
+        for player in range(len(self.joint_q_values)):
+            opponent_policy = self.joint_policy_pi[1 - player]
+            oppenent_term = (
+                opponent_policy
+                * np.log(opponent_policy / self.joint_policy_mu[1 - player]).sum()
             )
-        return q_value
+            player_term = np.log(
+                self.joint_policy_pi[player] / self.joint_policy_mu[player]
+            )
+
+            self.joint_q_values[player] = self.joint_q_values[player] + self.eta * (
+                -player_term + oppenent_term
+            )
