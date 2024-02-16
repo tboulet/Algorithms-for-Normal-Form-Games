@@ -16,6 +16,7 @@ import cProfile, pstats
 # Config system
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 
 # Project imports
 from core.utils import to_numeric, try_get_seed
@@ -49,6 +50,7 @@ def main(config: DictConfig):
     # Set the seeds
     random.seed(seed)
     np.random.seed(seed)
+    BaseNFGAlgorithm.RANDOM_GENERATOR = np.random.default_rng(seed)
 
     # Get the game
     game_name = config["game"]["game_name"]
@@ -91,10 +93,12 @@ def main(config: DictConfig):
     for idx_episode_training in tqdm(range(n_episodes_training), disable=not tqdm_bar):
 
         # Update the dynamic tracker (for visualization of the policies dynamics)
-        probs_first_action = algo.get_inference_policies()[:2, 0]
+        probs_first_action = [
+            player_action[0] for player_action in algo.get_inference_policies()
+        ]
         plotter.add_point(
             PointToPlot(
-                name="trajectory",
+                name="previous trajectory",
                 coords=probs_first_action,
                 color="b",
                 marker="-",
@@ -102,7 +106,7 @@ def main(config: DictConfig):
         )
         plotter.add_point(
             PointToPlot(
-                name="π",
+                name="current trajectory",
                 coords=probs_first_action,
                 color="r",
                 marker="o",
@@ -125,7 +129,10 @@ def main(config: DictConfig):
         )
 
         # Log the objects returned by the learn method
-        if idx_episode_training % frequency_metric == 0:
+        if (
+            isinstance(objects_to_log, dict)
+            and idx_episode_training % frequency_metric == 0
+        ):
             metrics_to_log = {
                 k: v for k, v in objects_to_log.items() if isinstance(v, (int, float))
             }

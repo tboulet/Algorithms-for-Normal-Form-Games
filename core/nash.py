@@ -11,12 +11,8 @@ import copy
 def get_expected_payoff(game: BaseNFGGame, joint_policy: JointPolicy) -> np.ndarray:
     utility_matrix = game.get_utility_matrix()
 
-    expected_payoff = (
-        utility_matrix * np.array(joint_policy[0])[:, np.newaxis, np.newaxis]
-    )
-    expected_payoff = (
-        expected_payoff * np.array(joint_policy[1])[np.newaxis, :, np.newaxis]
-    )
+    expected_payoff = utility_matrix * joint_policy[0][:, np.newaxis, np.newaxis]
+    expected_payoff = expected_payoff * joint_policy[1][np.newaxis, :, np.newaxis]
 
     return np.sum(expected_payoff, axis=(0, 1))
 
@@ -34,22 +30,10 @@ def get_expected_strategy_payoff(
 def get_best_response(
     game: BaseNFGGame, player: int, joint_policy: JointPolicy
 ) -> tuple[List[int], float]:
-    utility_matrix = game.get_utility_matrix()
+    model_based_q_value = game.get_model_based_q_value(player, joint_policy)
+    max_utility = np.max(model_based_q_value)
 
-    if player == 0:
-        weighted_utility = (
-            utility_matrix[:, :, 0] * np.array(joint_policy[1])[:, np.newaxis]
-        )
-        weighted_utility = np.sum(weighted_utility, axis=0)
-    else:
-        weighted_utility = (
-            utility_matrix[:, :, 1] * np.array(joint_policy[0])[np.newaxis, :]
-        )
-        weighted_utility = np.sum(weighted_utility, axis=1)
-
-    max_utility = np.max(weighted_utility)
-
-    return np.nonzero(weighted_utility == max_utility)[0], max_utility
+    return np.nonzero(model_based_q_value == max_utility)[0], max_utility
 
 
 def compute_nash_conv(game: BaseNFGGame, joint_policy: JointPolicy) -> float:
@@ -88,41 +72,60 @@ def compute_nash_equilibrium(game: BaseNFGGame, method : str) -> JointPolicy:
         n_actions = game.num_distinct_actions()
 
         # Define the objective function
-        c_1 = [0] * n_actions + [1]
-        c_0 = [0] * n_actions + [-1]
+        c_1 = [0] * n_actions[1] + [1]
+        c_0 = [0] * n_actions[0] + [-1]
 
         # Define the constraints
         A_ub_0 = []
+        b_0 = []
+        A_eq_0 = []
+        b_eq_0 = []
+        
         A_ub_1 = []
-        b = []
-        A_eq = []
-        b_eq = []
-        # Each action should get a payoff inferior to w
-        for action in range(n_actions):
+        b_1 = []
+        A_eq_1 = []
+        b_eq_1 = []
+        
+        # Constraint for player 0
+        for action in range(n_actions[0]):
             # R[a,:] @ p >= t
             A_ub_0.append(utility_matrix[:, action, 1].tolist() + [1])
-            # R[:,a] @ p <= w
-            A_ub_1.append(utility_matrix[action, :, 0].tolist() + [-1])
-            b.append(0)
-        # p[a] >= 0
-        for action in range(n_actions):
-            constraint_vector = [0] * (n_actions + 1)
+            b_0.append(0)
+            # p[a] >= 0
+            constraint_vector = [0] * (n_actions[0] + 1)
             constraint_vector[action] = -1
             A_ub_0.append(constraint_vector)
-            A_ub_1.append(constraint_vector)
-            b.append(0)
+            b_0.append(0)
         # The sum of the probabilities should be 1
-        constraint_vector = [1] * n_actions + [0]
-        A_eq.append(constraint_vector)
-        b_eq.append(1)
-
+        constraint_vector = [1] * n_actions[0] + [0]
+        A_eq_0.append(constraint_vector)
+        b_eq_0.append(1)
         # Solve the linear program
-        pi_1_NE = linprog(c_1, A_ub=A_ub_1, b_ub=b, A_eq=A_eq, b_eq=b_eq).x[:-1]
-        pi_0_NE = linprog(c_0, A_ub=A_ub_0, b_ub=b, A_eq=A_eq, b_eq=b_eq).x[:-1]
+        pi_1_NE = linprog(c_0, A_ub=A_ub_0, b_ub=b_0, A_eq=A_eq_0, b_eq=b_eq_0).x[:-1]
+        print(pi_1_NE)
+        
+        # Constraint for player 1
+        for action in range(n_actions[1]):
+            # R[:,a] @ p >= t
+            A_ub_1.append(utility_matrix[action, :, 1].tolist() + [1])
+            b_1.append(0)
+            # p[a] >= 0
+            constraint_vector = [0] * (n_actions[1] + 1)
+            constraint_vector[action] = -1
+            A_ub_1.append(constraint_vector)
+            b_1.append(0)
+        # The sum of the probabilities should be 1
+        constraint_vector = [1] * n_actions[1] + [0]
+        A_eq_1.append(constraint_vector)
+        b_eq_1.append(1)
+        # Solve the linear program
+        pi_0_NE = linprog(c_1, A_ub=A_ub_1, b_ub=b_1, A_eq=A_eq_1, b_eq=b_eq_1).x[:-1]
+        # Solve the linear program
         return np.array([pi_0_NE, pi_1_NE])
 
     elif method == "lagrangian":
         assert game.num_players() == 2, "This method only works for 2-player games"
+        assert game.num_distinct_actions()[0] == game.num_distinct_actions()[1], "This method only works for games with the same number of actions for both players"
         
         R0 = game.get_utility_matrix()[:, :, 0]
         R1 = game.get_utility_matrix()[:, :, 1]
@@ -132,7 +135,7 @@ def compute_nash_equilibrium(game: BaseNFGGame, method : str) -> JointPolicy:
         if np.linalg.det(R1) == 0:
             R1 += np.eye(R1.shape[0]) * sys.float_info.epsilon
         
-        ones = np.ones(shape=(game.num_distinct_actions(),))
+        ones = np.ones(shape=(game.num_distinct_actions()[0],))
 
         pi1 = np.linalg.inv(R0) @ ones
         pi1 /= np.sum(pi1)

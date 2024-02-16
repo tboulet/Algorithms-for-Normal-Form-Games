@@ -57,7 +57,7 @@ class OnlinePlotter:
         self.plot_timestep = 0
 
         # Create the plot
-        fig, self.ax = plt.subplots()
+        _, self.ax = plt.subplots()
         self.ax.set_xlim(0, 1)
         self.ax.set_ylim(0, 1)
         self.ax.set_xlabel(x_label)

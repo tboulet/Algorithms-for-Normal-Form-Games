@@ -59,8 +59,7 @@ def int_to_reward(n: int) -> int:
         return 1
     elif n < 0:
         return -1
-    else:
-        return 0
+    raise ValueError("The cards should not have the same value")
 
 
 class KuhnPokerNFG(BaseNFGGame):
@@ -144,8 +143,11 @@ class KuhnPokerNFG(BaseNFGGame):
             plan_player1, plan_player2, state_player1, state_player2
         )
 
-    def num_distinct_actions(self) -> int:
-        return len(self.actions_index_to_action_1)
+    def num_distinct_actions(self) -> List[int]:
+        return [
+            len(self.actions_index_to_action_1),
+            len(self.actions_index_to_action_2),
+        ]
 
     def num_players(self) -> int:
         return 2
