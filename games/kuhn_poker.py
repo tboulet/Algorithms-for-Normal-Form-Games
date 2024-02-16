@@ -1,3 +1,4 @@
+import random
 from typing import Dict, List, Tuple
 from core.typing import JointPolicy
 import numpy as np
@@ -130,8 +131,8 @@ class KuhnPokerNFG(BaseNFGGame):
         action_player2 = self.actions_index_to_action_2[idx_action_player2]
 
         # State (i.e. card) is given by Dealer's card
-        state_player1 = np.random.choice(cards)
-        state_player2 = np.random.choice([c for c in cards if c != state_player1])
+        state_player1 = random.choice(cards)
+        state_player2 = random.choice([c for c in cards if c != state_player1])
 
         # Get the plan of both players
         plan_player1 = action_player1[cards.index(state_player1)]

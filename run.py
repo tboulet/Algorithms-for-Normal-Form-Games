@@ -16,11 +16,13 @@ import cProfile, pstats
 # Config system
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 
 # Project imports
 from core.utils import to_numeric, try_get_seed
 from core.typing import Policy, JointPolicy
 from core.online_plotter import OnlinePlotter, PointToPlot
+from core.nash import compute_nash_conv, compute_nash_equilibrium
 from algorithms import algo_name_to_nfg_solver
 from games import game_name_to_nfg_solver
 
@@ -33,9 +35,10 @@ def main(config: DictConfig):
 
     # Get the config parameters
     n_episodes_training = to_numeric(config["n_episodes_training"])
+    nash_computation_method = config["nash_computation_method"]
     seed = try_get_seed(config)
 
-    frequency_metric = config["frequency_metric"]
+    frequency_metric = to_numeric(config["frequency_metric"])
     do_cli = config["do_cli"]
     frequency_cli = to_numeric(config["frequency_cli"])
     do_tb = config["do_tb"]
@@ -47,6 +50,7 @@ def main(config: DictConfig):
     # Set the seeds
     random.seed(seed)
     np.random.seed(seed)
+    BaseNFGAlgorithm.RANDOM_GENERATOR = np.random.default_rng(seed)
 
     # Get the game
     game_name = config["game"]["game_name"]
@@ -68,8 +72,15 @@ def main(config: DictConfig):
         title=f"Policies Dynamics\n {run_name}",
         **plot_config,
     )
-    # TODO : plotter.add_point  # add Nash Equilibrium point
-
+    ne_joint_policy = compute_nash_equilibrium(game, method=nash_computation_method)
+    plotter.add_point(
+        PointToPlot(
+            name="NE",
+            coords=ne_joint_policy[:, 0],
+            color="orange",
+            marker="x",
+        )
+    )
     if do_tb:
         writer = SummaryWriter(log_dir=f"tensorboard/{run_name}")
     if do_wandb:
@@ -128,6 +139,11 @@ def main(config: DictConfig):
             points_to_plot = {
                 k: v for k, v in objects_to_log.items() if isinstance(v, PointToPlot)
             }
+            # Log other metrics (like Nash conv)
+            metrics_to_log["nash_conv"] = compute_nash_conv(
+                game, algo.get_inference_policies()
+            )
+
             # Log the metrics
             if do_tb:
                 for metric_name, metric_value in metrics_to_log.items():

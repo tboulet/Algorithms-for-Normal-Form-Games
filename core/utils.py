@@ -1,17 +1,25 @@
+import sys
 from typing import Dict, Union
 
 import numpy as np
 
 
-def to_numeric(x: Union[int, float, str, None]) -> Union[int, float]:
+def to_numeric(x: Union[int, float, str, None]) -> Union[int, float, None]:
     if isinstance(x, int) or isinstance(x, float):
         return x
-    elif isinstance(x, str):
-        return float(x)
-    elif x is None or x == "inf":
-        return float("inf")
+    elif x == "inf":
+        return sys.maxsize
     elif x == "-inf":
-        return float("-inf")
+        return -sys.maxsize
+    elif x == "eps" or x == "epsilon":
+        return sys.float_info.epsilon
+    elif isinstance(x, str):
+        try:
+            return float(x)
+        except ValueError:
+            raise ValueError(f"Cannot convert {x} to float, please specify something like '2' or '3.0' or 'inf'.")
+    elif x is None:
+        return None
     else:
         raise ValueError(f"Cannot convert {x} to numeric")
 

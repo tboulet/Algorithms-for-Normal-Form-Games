@@ -82,7 +82,6 @@ class PolicyGradient(BaseNFGAlgorithm):
         for i in range(self.n_players):
             self.joint_q_values[i] = self.game.get_model_based_q_value(
                 player=i,
-                action=joint_action[i],
                 joint_policy=joint_policy,
             )
 
@@ -132,6 +131,8 @@ class PolicyGradient(BaseNFGAlgorithm):
             # Increment timestep
             self.joint_q_values = [np.zeros(n_action) for n_action in self.n_actions]
             self.timestep += 1
+
+        return {}
 
     def get_inference_policies(
         self,

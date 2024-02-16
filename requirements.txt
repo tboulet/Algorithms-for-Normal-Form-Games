@@ -12,3 +12,4 @@ hydra-core
 
 # Common libraries
 numpy
+scipy

@@ -1,21 +1,24 @@
 import random
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Union
 from abc import ABC, abstractmethod
 
 import numpy as np
+from core.online_plotter import PointToPlot
 
 from core.typing import JointPolicy, Policy
 from games.base_nfg_game import BaseNFGGame
 
 
-RANDOM_GENERATOR = np.random.default_rng(42)
+
 
 
 class BaseNFGAlgorithm(ABC):
     """The base class for any model-free Normal-Form Game solver.
     It must be able to interact with a pyspiel game object for finding a good joint policy for the game.
     """
-
+    
+    RANDOM_GENERATOR = np.random.default_rng(42)
+    
     @abstractmethod
     def initialize_algorithm(
         self,
@@ -46,7 +49,7 @@ class BaseNFGAlgorithm(ABC):
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
-    ) -> Optional[Dict[str, float]]:
+    ) -> Optional[Dict[str, Union[float, PointToPlot]]]:
         """Learns from the experience of playing one episode.
 
         Args:
@@ -55,7 +58,8 @@ class BaseNFGAlgorithm(ABC):
             rewards (List[float]): the rewards obtained by the players
 
         Returns:
-            Optional[Dict[str, float]]: the metrics of the learning process, or None if no metrics returned
+            Optional[Dict[str, Union[float, PointToPlot]]]: the objects to log, as a dictionnary with
+            the name of the object as key and either a numerical metric of a point to plot as value.
         """
 
     @abstractmethod
@@ -84,7 +88,7 @@ class BaseNFGAlgorithm(ABC):
             Policy: the initialized joint policy
         """
         joint_policy = [
-            RANDOM_GENERATOR.random(n_player_actions) for n_player_actions in n_actions
+            self.RANDOM_GENERATOR.random(n_player_actions) for n_player_actions in n_actions
         ]
 
         for i in range(len(joint_policy)):
@@ -144,9 +148,9 @@ class BaseNFGAlgorithm(ABC):
         joint_action_probs = [0.0] * len(joint_policy)
         for i in range(len(joint_policy)):
             if len(joint_policy[i]) == 2:
-                action = int(random.random() < joint_policy[i][0])
+                action = int(random.random() > joint_policy[i][0])
             else:
-                action = RANDOM_GENERATOR.choice(
+                action = self.RANDOM_GENERATOR.choice(
                     len(joint_policy[i]), p=joint_policy[i]
                 )
             joint_action[i] = action
