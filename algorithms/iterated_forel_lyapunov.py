@@ -1,14 +1,11 @@
 import sys
-from time import sleep
-from matplotlib import pyplot as plt
 import numpy as np
 from typing import Any, Dict, List, Optional
 
 from algorithms.forel import Forel
 from core.online_plotter import PointToPlot
 from games.base_nfg_game import BaseNFGGame
-from core.typing import JointPolicy, Policy
-from core.utils import to_numeric
+from core.typing import JointPolicy
 
 
 class IteratedForel(Forel):
@@ -88,7 +85,7 @@ class IteratedForel(Forel):
         )
         metrics["mu_point"] = PointToPlot(
             name="mu",
-            coords=self.joint_policy_mu[:, 0],
+            coords=[mu_i[0] for mu_i in self.joint_policy_mu],
             color="g",
             marker="o",
             is_unique=True,
