@@ -133,6 +133,7 @@ class Forel(BaseNFGAlgorithm):
         elif self.dynamics_method == DynamicMethod.RD:
             # Method 2 : Replicator Dynamics
             for i in range(self.n_players):
+
                 state_value = np.sum(
                     self.joint_q_values[i] * self.joint_policy_pi[i]
                 )  # V_t = sum_a Q_t(a) * pi_t(a)
@@ -140,9 +141,7 @@ class Forel(BaseNFGAlgorithm):
                     self.joint_q_values[i] - state_value
                 )  # A_t(a) = Q_t(a) - V_t
                 self.joint_policy_pi[i] += (
-                    self.learning_rate_rd
-                    * advantage_values[i]
-                    * self.joint_policy_pi[i]
+                    self.learning_rate_rd * advantage_values * self.joint_policy_pi[i]
                 )
                 # Normalize policy in case of numerical errors
                 self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
