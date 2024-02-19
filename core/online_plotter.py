@@ -3,22 +3,24 @@ import os
 import matplotlib.pyplot as plt
 from typing import Dict, List, Tuple, Optional, Any
 
+import numpy as np
+
 
 @dataclass
-class PointToPlot:
-    """An object representing a point in 2D space to be plotted.
-    It contains the information of the coordinates but also the color and the marker of the point.
+class DataPolicyToPlot:
+    """An object representing a joint policy to plot.
+    It contains the information of the joint policy, the color and the marker of the data representation, and whether the data policy is unique.
 
     Args:
         name (str): the name of the metric it represents
-        coords (Tuple[float, float]): the coordinates of the point
-        color (str): the color of the point
-        marker (str): the marker of the point
-        is_unique (bool, optional): whether the point is unique and should replace any previous point with the same name. Defaults to False.
+        joint_policy (JointPolicy): the joint policy (a list of Policy (an array of n probabilities) for each player)
+        color (str): the color of the 
+        marker (str): the marker of the data representation
+        is_unique (bool, optional): whether the data is unique, and should replace all previous data with the same name. Defaults to False.
     """
 
     name: str
-    coords: Tuple[float, float]
+    joint_policy: List[np.ndarray]
     color: str
     marker: str
     is_unique: bool = False
@@ -28,8 +30,6 @@ class OnlinePlotter:
     def __init__(
         self,
         title: str,
-        x_label: str,
-        y_label: str,
         do_plot_online: bool = True,
         update_frequency: int = 10000,
         pause_time: float = 0.01,
@@ -38,8 +38,6 @@ class OnlinePlotter:
 
         Args:
             title (str): the title of the plot
-            x_label (str): the label of the x axis
-            y_label (str): the label of the y axis
             do_plot_online (bool, optional): Whether to plot. Defaults to True.
             update_frequency (int, optional): The frequency at which plot is updated with the 'points to plot'. Defaults to 10000.
             pause_time (float, optional): The pause time between each update. Defaults to 0.01.
@@ -50,47 +48,45 @@ class OnlinePlotter:
         self.pause_time = pause_time
 
         # Create plot memory objects
-        self.point_name_to_list_x_list_y: Dict[str, Tuple[List[float], List[float]]] = (
+        self.name_dataPolicy_to_list_x_list_y: Dict[str, Tuple[List[float], List[float]]] = (
             {}
         )
-        self.point_names_to_line2d: Dict[str, plt.Line2D] = {}
+        self.name_dataPolicy_to_line2d: Dict[str, plt.Line2D] = {}
         self.plot_timestep = 0
 
         # Create the plot
         _, self.ax = plt.subplots()
         self.ax.set_xlim(0, 1)
         self.ax.set_ylim(0, 1)
-        self.ax.set_xlabel(x_label)
-        self.ax.set_ylabel(y_label)
         self.ax.legend()
         plt.title(title)
 
-    def add_point(
+    def add_data_policy_to_plot(
         self,
-        point: PointToPlot,
+        data_policy: DataPolicyToPlot,
     ):
-        """Add a point to the list of points to plot.
+        """Add a data policy to the list of data policies to plot.
 
         Args:
-            point (PointToPlot): the point to add to the plot
+            data_policy (DataPolicyToPlot): the data policy to add to the plot
         """
 
-        # Create the point list and line2d if it does not exist
-        if point.name not in self.point_name_to_list_x_list_y:
-            self.point_name_to_list_x_list_y[point.name] = ([], [])
-            (self.point_names_to_line2d[point.name],) = self.ax.plot(
-                [], [], point.marker, color=point.color, label=point.name
+        # Create the data policy list and line2d if it does not exist
+        if data_policy.name not in self.name_dataPolicy_to_list_x_list_y:
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
+            (self.name_dataPolicy_to_line2d[data_policy.name],) = self.ax.plot(
+                [], [], data_policy.marker, color=data_policy.color, label=data_policy.name
             )
             self.ax.legend()
-        # If the point is unique, remove all previous points with the same name
-        if point.is_unique:
-            self.point_name_to_list_x_list_y[point.name] = ([], [])
-        # Add the point to the list
-        self.point_name_to_list_x_list_y[point.name][0].append(point.coords[0])
-        self.point_name_to_list_x_list_y[point.name][1].append(point.coords[1])
+        # If the data policy is unique, remove all previous data policies with the same name
+        if data_policy.is_unique:
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
+        # Add the data policy to the list
+        self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(data_policy.joint_policy[0][0])
+        self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(data_policy.joint_policy[1][0])
 
     def update_plot(self, force_update: bool = False):
-        """Update the online plot with the points currently in memory.
+        """Update the online plot with the data policies currently in memory.
 
         Args:
             force_update (bool, optional): whether to force plotting in spite of the update frequency constraints. Defaults to False.
@@ -99,11 +95,11 @@ class OnlinePlotter:
         if force_update or (
             self.do_plot_online and (self.plot_timestep % self.update_frequency == 0)
         ):
-            for point_name, (
+            for name_dataPolicy, (
                 list_x,
                 list_y,
-            ) in self.point_name_to_list_x_list_y.items():
-                self.point_names_to_line2d[point_name].set_data(list_x, list_y)
+            ) in self.name_dataPolicy_to_list_x_list_y.items():
+                self.name_dataPolicy_to_line2d[name_dataPolicy].set_data(list_x, list_y)
             plt.pause(0.01)
 
         # Increment the index of the plot object
@@ -119,3 +115,155 @@ class OnlinePlotter:
         self.update_plot()
         plt.savefig(path)
         plt.close()
+
+
+class OnlinePlotterForACertainPlayer(OnlinePlotter):
+    def __init__(
+        self,
+        title: str,
+        player_index: int,
+        n_actions: int,
+        do_plot_online: bool = True,
+        update_frequency: int = 10000,
+        pause_time: float = 0.01,
+    ):
+        """Create an object to generate a 2D plot online and visualize it.
+
+        Args:
+            title (str): the title of the plot
+            n_actions (int): the number of actions for the player
+            do_plot_online (bool, optional): Whether to plot. Defaults to True.
+            update_frequency (int, optional): The frequency at which plot is updated with the 'data policies to plot'. Defaults to 10000.
+            pause_time (float, optional): The pause time between each update. Defaults to 0.01.
+        """
+
+        # Variables
+        self.title = title
+        self.do_plot_online = do_plot_online
+        self.update_frequency = update_frequency
+        self.pause_time = pause_time
+        self.player_index = player_index
+        self.n_actions = n_actions
+
+        if self.n_actions < 3:
+            raise ValueError("Number of sides should be at least 3.")
+
+        # Generating the vertices of the polygon
+        angles_with_endpoint = np.linspace(0, 2 * np.pi, n_actions + 1, endpoint=True)
+        vertices_x_with_endpoint = np.cos(angles_with_endpoint)
+        vertices_y_with_endpoint = np.sin(angles_with_endpoint)
+        self.angles = angles_with_endpoint[:-1]
+        self.vertices_x = np.cos(self.angles)
+        self.vertices_y = np.sin(self.angles)
+
+        # Create the plot
+        fig, self.ax = plt.subplots(figsize=(6, 6))
+        self.ax.title.set_text(title)
+        self.ax.plot(vertices_x_with_endpoint, vertices_y_with_endpoint, marker="o")
+        self.ax.axis("equal")  # idk what this does
+        for a in range(n_actions):
+            self.ax.text(
+                self.vertices_x[a],
+                self.vertices_y[a],
+                str(a),
+                fontsize=12,
+                ha="right",
+                va="bottom",
+            )
+
+        # Create plot memory objects
+        self.name_dataPolicy_to_list_x_list_y: Dict[str, List[List[float]]] = {}
+        self.name_dataPolicy_to_line2d: Dict[str, plt.Line2D] = {}
+        self.plot_timestep = 0
+
+    def add_data_policy_to_plot(
+        self,
+        data_policy: DataPolicyToPlot,
+    ):
+        # Create the data policy list and line2d if it does not exist
+        if data_policy.name not in self.name_dataPolicy_to_list_x_list_y:
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
+            (self.name_dataPolicy_to_line2d[data_policy.name],) = self.ax.plot(
+                [], [], data_policy.marker, color=data_policy.color, label=data_policy.name
+            )
+            self.ax.legend()
+        # If the data policy is unique, remove all previous data policies with the same name
+        if data_policy.is_unique:
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
+        # Add the data policy to the list
+        point_x = np.sum(self.vertices_x * data_policy.joint_policy[self.player_index])
+        point_y = np.sum(self.vertices_y * data_policy.joint_policy[self.player_index])
+        self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(point_x)
+        self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(point_y)
+
+
+class OnlinePlotterForNPlayers(OnlinePlotter):
+    """An object to generate a 2D plot online and visualize it for each player. It contains a plotter for each player."""
+
+    def __init__(
+        self,
+        title: str,
+        n_players: int,
+        n_actions_by_player: int,
+        do_plot_online: bool = True,
+        update_frequency: int = 10000,
+        pause_time: float = 0.01,
+    ):
+        self.player_idx_to_plotter: Dict[int, OnlinePlotter] = {
+            i: OnlinePlotterForACertainPlayer(
+                title=f"[Player {i}] - {title}",
+                player_index=i,
+                n_actions=n_actions_by_player[i],
+                do_plot_online=do_plot_online,
+                update_frequency=update_frequency,
+                pause_time=pause_time,
+            )
+            for i in range(n_players)
+        }
+
+    def add_data_policy_to_plot(
+        self,
+        data_policy: DataPolicyToPlot,
+    ):
+        for i in range(len(data_policy.joint_policy)):
+            self.player_idx_to_plotter[i].add_data_policy_to_plot(data_policy)
+
+    def update_plot(self, force_update: bool = False):
+        for plotter in self.player_idx_to_plotter.values():
+            plotter.update_plot(force_update=force_update)
+
+
+def get_plotter(
+    n_players: int,
+    n_actions: List[int],
+    plot_config: Dict[str, Any],
+) -> OnlinePlotter:
+    """Get a plotter object from a configuration.
+
+    Args:
+        n_players (int): the number of players
+        n_actions (List[int]): the number of actions for each player
+        plot_config (Dict[str, Any]): the configuration of the plot
+
+    Returns:
+        OnlinePlotter: the plotter object
+    """
+    assert n_players > 1, "This function is only for n_players > 1"
+    assert len(n_actions) == n_players, "n_actions should have n_players elements"
+    assert all(
+        [n > 1 for n in n_actions]
+    ), "All elements of n_actions should be greater than 1"
+
+    # If each player has a different number of actions, use a plotter for each player
+    if np.unique(n_actions).shape[0] != 1:
+        return OnlinePlotterForNPlayers(
+            **plot_config, n_players=n_players, n_actions_by_player=n_actions
+        )
+    # In the 2-player 2-action case, use the regular plotter
+    elif n_players == 2 and n_actions[0] == 2:
+        return OnlinePlotter(**plot_config)
+    # If there are more than 2 players, or more than 2 actions, use a plotter for each player
+    else:
+        return OnlinePlotterForNPlayers(
+            **plot_config, n_players=n_players, n_actions_by_player=n_actions
+        )

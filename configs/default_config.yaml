@@ -12,8 +12,6 @@ do_wandb : False
 wandb_config:
   project : Algorithms-for-Normal-Form-Games
 plot_config :
-  x_label : probability of taking first action for player 0
-  y_label : probability of taking first action for player 1
   do_plot_online : True
   update_frequency : 1000
   pause_time : 0.001

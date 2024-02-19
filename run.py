@@ -21,7 +21,7 @@ from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 # Project imports
 from core.utils import to_numeric, try_get_seed
 from core.typing import Policy, JointPolicy
-from core.online_plotter import OnlinePlotter, PointToPlot
+from core.online_plotter import DataPolicyToPlot, get_plotter
 from core.nash import compute_nash_conv, compute_nash_equilibrium
 from algorithms import algo_name_to_nfg_solver
 from games import game_name_to_nfg_solver
@@ -68,15 +68,16 @@ def main(config: DictConfig):
     # Intialize the logging
     run_name = f"[{algo_name}]_[{game_name}]_{datetime.datetime.now().strftime('%dth%mmo_%Hh%Mmin%Ss')}_seed{seed}"
     print(f"Starting run {run_name}")
-    plotter = OnlinePlotter(
-        title=f"Policies Dynamics\n {run_name}",
-        **plot_config,
+    plotter = get_plotter(
+        n_players=game.num_players(),
+        n_actions=game.num_distinct_actions(),
+        plot_config={"title": f"Policies Dynamics\n {run_name}", **plot_config},
     )
     ne_joint_policy = compute_nash_equilibrium(game, method=nash_computation_method)
-    plotter.add_point(
-        PointToPlot(
+    plotter.add_data_policy_to_plot(
+        DataPolicyToPlot(
             name="NE",
-            coords=ne_joint_policy[:, 0],
+            joint_policy=ne_joint_policy,
             color="orange",
             marker="x",
         )
@@ -93,21 +94,19 @@ def main(config: DictConfig):
     for idx_episode_training in tqdm(range(n_episodes_training), disable=not tqdm_bar):
 
         # Update the dynamic tracker (for visualization of the policies dynamics)
-        probs_first_action = [
-            player_action[0] for player_action in algo.get_inference_policies()
-        ]
-        plotter.add_point(
-            PointToPlot(
+        joint_policy_pi = algo.get_inference_policies()
+        plotter.add_data_policy_to_plot(
+            DataPolicyToPlot(
                 name="previous trajectory",
-                coords=probs_first_action,
+                joint_policy=joint_policy_pi,
                 color="b",
                 marker="-",
             )
         )
-        plotter.add_point(
-            PointToPlot(
+        plotter.add_data_policy_to_plot(
+            DataPolicyToPlot(
                 name="current trajectory",
-                coords=probs_first_action,
+                joint_policy=joint_policy_pi,
                 color="r",
                 marker="o",
                 is_unique=True,
@@ -136,8 +135,10 @@ def main(config: DictConfig):
             metrics_to_log = {
                 k: v for k, v in objects_to_log.items() if isinstance(v, (int, float))
             }
-            points_to_plot = {
-                k: v for k, v in objects_to_log.items() if isinstance(v, PointToPlot)
+            joint_policies_to_plot = {
+                k: v
+                for k, v in objects_to_log.items()
+                if isinstance(v, DataPolicyToPlot)
             }
             # Log other metrics (like Nash conv)
             metrics_to_log["nash_conv"] = compute_nash_conv(
@@ -154,9 +155,9 @@ def main(config: DictConfig):
                 wandb.log(metrics_to_log, step=idx_episode_training)
             if do_cli and idx_episode_training % frequency_cli == 0:
                 print(f"Episode {idx_episode_training} : \n{metrics_to_log}")
-            # Log the points
-            for object_name, point in points_to_plot.items():
-                plotter.add_point(point)
+            # Log the data policies to plot
+            for object_name, data_policy_to_plot in joint_policies_to_plot.items():
+                plotter.add_data_policy_to_plot(data_policy_to_plot)
 
     # At the end of the run, show and save the plot of the dynamics
     plotter.update_plot(force_update=True)
