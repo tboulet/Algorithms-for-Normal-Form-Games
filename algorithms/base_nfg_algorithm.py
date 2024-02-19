@@ -3,22 +3,19 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from abc import ABC, abstractmethod
 
 import numpy as np
-from core.online_plotter import PointToPlot
+from core.online_plotter import DataPolicyToPlot
 
 from core.typing import JointPolicy, Policy
 from games.base_nfg_game import BaseNFGGame
-
-
-
 
 
 class BaseNFGAlgorithm(ABC):
     """The base class for any model-free Normal-Form Game solver.
     It must be able to interact with a pyspiel game object for finding a good joint policy for the game.
     """
-    
+
     RANDOM_GENERATOR = np.random.default_rng(42)
-    
+
     @abstractmethod
     def initialize_algorithm(
         self,
@@ -49,7 +46,7 @@ class BaseNFGAlgorithm(ABC):
         joint_action: List[int],
         probs: List[float],
         rewards: List[float],
-    ) -> Optional[Dict[str, Union[float, PointToPlot]]]:
+    ) -> Optional[Dict[str, Union[float, DataPolicyToPlot]]]:
         """Learns from the experience of playing one episode.
 
         Args:
@@ -58,8 +55,8 @@ class BaseNFGAlgorithm(ABC):
             rewards (List[float]): the rewards obtained by the players
 
         Returns:
-            Optional[Dict[str, Union[float, PointToPlot]]]: the objects to log, as a dictionnary with
-            the name of the object as key and either a numerical metric of a point to plot as value.
+            Optional[Dict[str, Union[float, DataPolicyToPlot]]]: the objects to log, as a dictionnary with
+            the name of the object as key and either a numerical metric of a dataPolicy to plot as value.
         """
 
     @abstractmethod
@@ -88,7 +85,8 @@ class BaseNFGAlgorithm(ABC):
             Policy: the initialized joint policy
         """
         joint_policy = [
-            self.RANDOM_GENERATOR.random(n_player_actions) for n_player_actions in n_actions
+            self.RANDOM_GENERATOR.random(n_player_actions)
+            for n_player_actions in n_actions
         ]
 
         for i in range(len(joint_policy)):

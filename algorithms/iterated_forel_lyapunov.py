@@ -3,7 +3,7 @@ import numpy as np
 from typing import Any, Dict, List, Optional
 
 from algorithms.forel import Forel
-from core.online_plotter import PointToPlot
+from core.online_plotter import DataPolicyToPlot
 from core.scheduler import Scheduler
 from core.utils import to_numeric
 from games.base_nfg_game import BaseNFGGame
@@ -111,7 +111,7 @@ class IteratedForel(Forel):
                 joint_policy_pi=self.joint_policy_pi,
             )
 
-        # Add the metrics and points to plot
+        # Add the metrics and dataPolicies to plot
         metrics["iteration"] = self.iteration
         metrics["timestep"] = self.timestep
         metrics["eta"] = self.get_eta()
@@ -120,31 +120,25 @@ class IteratedForel(Forel):
             metrics[f"reward_modif/reward_modif_{i}"] = rewards[i]
             for a in range(self.n_actions[i]):
                 metrics[f"mu_{i}/mu_{i}_{a}"] = self.joint_policy_mu[i][a]
-        probs_first_actions_mu = np.array(
-            [self.joint_policy_mu[i][0] for i in range(self.n_players)]
-        )
-        metrics["mu"] = PointToPlot(
+        metrics["mu"] = DataPolicyToPlot(
             name="μ",
-            coords=probs_first_actions_mu,
+            joint_policy=self.joint_policy_mu,
             color="g",
             marker="o",
             is_unique=True,
         )
-        probs_first_actions_mu_k_minus_1 = np.array(
-            [self.joint_policy_mu_k_minus_1[i][0] for i in range(self.n_players)]
-        )
-        metrics["mu_k"] = PointToPlot(
+        metrics["mu_k"] = DataPolicyToPlot(
             name="μ_k",
-            coords=probs_first_actions_mu_k_minus_1,
+            joint_policy=self.joint_policy_mu_k_minus_1,
             color="g",
             marker="x",
         )
         if self.do_mu_update and self.do_linear_interpolation_mu:
             metrics["interpolation_rate_alpha"] = interpolation_rate_alpha
-            metrics["mu_interp"] = PointToPlot(
+            metrics["mu_interp"] = DataPolicyToPlot(
                 name="mu_interp",
-                coords=interpolation_rate_alpha * probs_first_actions_mu
-                + (1 - interpolation_rate_alpha) * probs_first_actions_mu_k_minus_1,
+                joint_policy=interpolation_rate_alpha * self.joint_policy_mu
+                + (1 - interpolation_rate_alpha) * self.joint_policy_mu_k_minus_1,
                 color="c",
                 marker="o",
                 is_unique=True,
@@ -153,7 +147,9 @@ class IteratedForel(Forel):
 
     # Helper methods
     def get_eta(self) -> float:
-        return self.eta_scheduler.get_value(self.iteration * self.n_timesteps_per_iterations + self.timestep)
+        return self.eta_scheduler.get_value(
+            self.iteration * self.n_timesteps_per_iterations + self.timestep
+        )
 
     def get_interpolation_rate_alpha(self) -> float:
         return Scheduler(
@@ -164,7 +160,7 @@ class IteratedForel(Forel):
             upper_bound=1,
             lower_bound=0,
         ).get_value(self.timestep)
-        
+
     def lyapunov_reward(
         self,
         chosen_actions: List[int],
