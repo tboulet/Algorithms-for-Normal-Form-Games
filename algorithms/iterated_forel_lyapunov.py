@@ -201,14 +201,14 @@ class IteratedForel(Forel):
         eta = self.get_eta()
         for player in range(len(self.joint_q_values)):
             opponent_policy = self.joint_policy_pi[1 - player]
-            oppenent_term = (
+            opponent_term = (
                 opponent_policy
-                * np.log(opponent_policy / self.joint_policy_mu[1 - player]).sum()
-            )
+                * np.log(opponent_policy / self.joint_policy_mu[1 - player])
+            ).sum()
             player_term = np.log(
                 self.joint_policy_pi[player] / self.joint_policy_mu[player]
             )
 
             self.joint_q_values[player] = self.joint_q_values[player] + eta * (
-                -player_term + oppenent_term
+                -player_term + opponent_term
             )
