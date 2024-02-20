@@ -35,8 +35,8 @@ class BaseNFGGame(ABC):
         utility_matrix = self.get_utility_matrix()
 
         if player == 0:
-            weighted_utility = utility_matrix[:, :, 0] * joint_policy[1][:, np.newaxis]
-            return np.sum(weighted_utility, axis=0)
+            weighted_utility = utility_matrix[:, :, 0] * joint_policy[1][np.newaxis, :]
+            return np.sum(weighted_utility, axis=1)
 
-        weighted_utility = utility_matrix[:, :, 1] * joint_policy[0][np.newaxis, :]
-        return np.sum(weighted_utility, axis=1)
+        weighted_utility = utility_matrix[:, :, 1] * joint_policy[0][:, np.newaxis]
+        return np.sum(weighted_utility, axis=0)
