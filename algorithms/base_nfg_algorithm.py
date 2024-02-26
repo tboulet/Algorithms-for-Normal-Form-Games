@@ -20,11 +20,13 @@ class BaseNFGAlgorithm(ABC):
     def initialize_algorithm(
         self,
         game: Any,
+        joint_policy_pi: Optional[JointPolicy] = None,
     ) -> None:
         """Initializes the algorithm.
 
         Args:
             game (Any): the game to be solved
+            joint_policy_pi (Optional[JointPolicy], optional): if not None, force the algorithm to use this joint policy (if possible).
         """
         pass
 
@@ -72,6 +74,22 @@ class BaseNFGAlgorithm(ABC):
 
     # Helper methods
 
+    def action_index_to_action_repr(
+        self,
+        player: int,
+        action: int,
+    ) -> str:
+        """Returns the string representation of an action.
+
+        Args:
+            player (int): the player
+            action (int): the action
+
+        Returns:
+            str: the string representation of the action-th action of the player-th player
+        """
+        return action
+
     def initialize_randomly_joint_policy(
         self,
         n_actions: List[int],
@@ -82,7 +100,7 @@ class BaseNFGAlgorithm(ABC):
             n_actions (List[int]): the number of actions for each player
 
         Returns:
-            Policy: the initialized joint policy
+            JointPolicy: the initialized joint policy
         """
         joint_policy = [
             self.RANDOM_GENERATOR.random(n_player_actions)

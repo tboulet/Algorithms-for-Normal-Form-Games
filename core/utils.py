@@ -1,5 +1,5 @@
 import sys
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 import numpy as np
 
@@ -17,7 +17,9 @@ def to_numeric(x: Union[int, float, str, None]) -> Union[int, float, None]:
         try:
             return float(x)
         except ValueError:
-            raise ValueError(f"Cannot convert {x} to float, please specify something like '2' or '3.0' or 'inf'.")
+            raise ValueError(
+                f"Cannot convert {x} to float, please specify something like '2' or '3.0' or 'inf'."
+            )
     elif x is None:
         return None
     else:
@@ -40,3 +42,21 @@ def try_get_seed(config: Dict) -> int:
     except KeyError:
         seed = np.random.randint(0, 1000)
     return seed
+
+
+def try_get(dictionnary: Dict, key: str, default: Union[int, float, str, None]) -> Any:
+    """Will try to extract the key from the dictionary, or return the default value if not found
+    or if the value is None
+
+    Args:
+        x (Dict): the dictionary
+        key (str): the key to extract
+        default (Union[int, float, str, None]): the default value
+
+    Returns:
+        Any: the value of the key if found, or the default value if not found
+    """
+    try:
+        return dictionnary[key] if dictionnary[key] is not None else default
+    except KeyError:
+        return default
