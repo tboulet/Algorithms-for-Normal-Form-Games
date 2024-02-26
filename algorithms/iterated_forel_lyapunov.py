@@ -137,8 +137,11 @@ class IteratedForel(Forel):
             metrics["interpolation_rate_alpha"] = interpolation_rate_alpha
             metrics["mu_interp"] = DataPolicyToPlot(
                 name="mu_interp",
-                joint_policy=interpolation_rate_alpha * self.joint_policy_mu
-                + (1 - interpolation_rate_alpha) * self.joint_policy_mu_k_minus_1,
+                joint_policy=[
+                    interpolation_rate_alpha * self.joint_policy_mu[i]
+                    + (1 - interpolation_rate_alpha) * self.joint_policy_mu_k_minus_1[i]
+                    for i in range(self.n_players)
+                ],
                 color="c",
                 marker="o",
                 is_unique=True,
