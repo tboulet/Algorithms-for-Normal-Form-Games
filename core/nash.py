@@ -47,9 +47,53 @@ def compute_nash_conv(game: BaseNFGGame, joint_policy: JointPolicy) -> float:
     return nash_conv
 
 
+def solve_nash_lp_formulation(
+    reward_matrix: np.ndarray,
+    ) -> Policy:
+    """Solve the Nash Equilibrium LP formulation for a 2-player 0-sum game,
+    for the first player.
+
+    Args:
+        reward_matrix (np.ndarray): the reward matrix
+
+    Returns:
+        Policy: the Nash equilibrium policy of the adversary
+    """
+    n0, n1 = reward_matrix.shape
+    A = []
+    b = []
+    A_eq = []
+    b_eq = []
+    
+    # Define the objective function : we try to minimize t (the lower bound on any expected result for player 0)
+    c = [0] * n1 + [-1]
+    
+    # Constraint : lower bound
+    for a0 in range(n0):
+        constraint_vector = (-reward_matrix[a0, :]).tolist() + [1]
+        A.append(constraint_vector)
+        b.append(0)
+        
+    # Constraint : sum of the probabilities should be 1
+    constraint_vector = [1] * n1 + [0]
+    A_eq.append(constraint_vector)
+    b_eq.append(1)
+    
+    # Constraint : (almost) positive probabilities
+    for a1 in range(n1):
+        constraint_vector = [0] * (n1 + 1)
+        constraint_vector[a1] = -1
+        A.append(constraint_vector)
+        b.append(-sys.float_info.epsilon)
+        
+    # Solve the linear program
+    pi_adv_NE = linprog(c, A_ub=A, b_ub=b, A_eq=A_eq, b_eq=b_eq).x[:-1]
+    return pi_adv_NE
+
 def compute_nash_equilibrium(game: BaseNFGGame, method : str) -> JointPolicy:
     """Compute the Nash equilibrium of any 2-player 0-sum normal form game.
-
+    If error during computation, return None.
+    
     Args:
         game (BaseNFGGame): the game to solve
         method (str): the method to use to compute the Nash equilibrium. It can be :
@@ -60,90 +104,44 @@ def compute_nash_equilibrium(game: BaseNFGGame, method : str) -> JointPolicy:
     Returns:
         JointPolicy: the Nash equilibrium of the game
     """
-    
-    if method == "LP":
-        assert game.num_players() == 2, "This method only works for 2-player games"
+    try :
+        if method == "LP":
+            assert game.num_players() == 2, "This method only works for 2-player games"
 
-        utility_matrix = game.get_utility_matrix()
-        assert (
-            utility_matrix[:, :, 0] == -utility_matrix[:, :, 1]
-        ).all(), "This method only works for 0-sum games"
+            utility_matrix = game.get_utility_matrix()
+            assert (
+                utility_matrix[:, :, 0] == -utility_matrix[:, :, 1]
+            ).all(), "This method only works for 0-sum games"
 
-        n_actions = game.num_distinct_actions()
+            pi_1_NE = solve_nash_lp_formulation(reward_matrix=utility_matrix[:, :, 0])
+            pi_0_NE = solve_nash_lp_formulation(reward_matrix=-utility_matrix[:, :, 1].T)
+            return np.array([pi_0_NE, pi_1_NE])
 
-        # Define the objective function
-        c_1 = [0] * n_actions[1] + [1]
-        c_0 = [0] * n_actions[0] + [-1]
+        elif method == "lagrangian":
+            assert game.num_players() == 2, "This method only works for 2-player games"
+            assert game.num_distinct_actions()[0] == game.num_distinct_actions()[1], "This method only works for games with the same number of actions for both players"
+            
+            R0 = game.get_utility_matrix()[:, :, 0]
+            R1 = game.get_utility_matrix()[:, :, 1]
 
-        # Define the constraints
-        A_ub_0 = []
-        b_0 = []
-        A_eq_0 = []
-        b_eq_0 = []
+            if np.linalg.det(R0) == 0:
+                R0 += np.eye(R0.shape[0]) * sys.float_info.epsilon
+            if np.linalg.det(R1) == 0:
+                R1 += np.eye(R1.shape[0]) * sys.float_info.epsilon
+            
+            ones = np.ones(shape=(game.num_distinct_actions()[0],))
+
+            pi1 = np.linalg.inv(R0) @ ones
+            pi1 /= np.sum(pi1)
+
+            pi0 = np.linalg.inv(R1) @ ones
+            pi0 /= np.sum(pi0)
+
+            return np.array([pi0, pi1])
         
-        A_ub_1 = []
-        b_1 = []
-        A_eq_1 = []
-        b_eq_1 = []
+        else:
+            raise ValueError(f"Unknown nash computation method {method}")
         
-        # Constraint for player 0
-        for action in range(n_actions[0]):
-            # R[a,:] @ p >= t
-            A_ub_0.append(utility_matrix[:, action, 1].tolist() + [1])
-            b_0.append(0)
-            # p[a] >= 0
-            constraint_vector = [0] * (n_actions[0] + 1)
-            constraint_vector[action] = -1
-            A_ub_0.append(constraint_vector)
-            b_0.append(0)
-        # The sum of the probabilities should be 1
-        constraint_vector = [1] * n_actions[0] + [0]
-        A_eq_0.append(constraint_vector)
-        b_eq_0.append(1)
-        # Solve the linear program
-        pi_1_NE = linprog(c_0, A_ub=A_ub_0, b_ub=b_0, A_eq=A_eq_0, b_eq=b_eq_0).x[:-1]
-        print(pi_1_NE)
-        
-        # Constraint for player 1
-        for action in range(n_actions[1]):
-            # R[:,a] @ p >= t
-            A_ub_1.append(utility_matrix[action, :, 1].tolist() + [1])
-            b_1.append(0)
-            # p[a] >= 0
-            constraint_vector = [0] * (n_actions[1] + 1)
-            constraint_vector[action] = -1
-            A_ub_1.append(constraint_vector)
-            b_1.append(0)
-        # The sum of the probabilities should be 1
-        constraint_vector = [1] * n_actions[1] + [0]
-        A_eq_1.append(constraint_vector)
-        b_eq_1.append(1)
-        # Solve the linear program
-        pi_0_NE = linprog(c_1, A_ub=A_ub_1, b_ub=b_1, A_eq=A_eq_1, b_eq=b_eq_1).x[:-1]
-        # Solve the linear program
-        return np.array([pi_0_NE, pi_1_NE])
-
-    elif method == "lagrangian":
-        assert game.num_players() == 2, "This method only works for 2-player games"
-        assert game.num_distinct_actions()[0] == game.num_distinct_actions()[1], "This method only works for games with the same number of actions for both players"
-        
-        R0 = game.get_utility_matrix()[:, :, 0]
-        R1 = game.get_utility_matrix()[:, :, 1]
-
-        if np.linalg.det(R0) == 0:
-            R0 += np.eye(R0.shape[0]) * sys.float_info.epsilon
-        if np.linalg.det(R1) == 0:
-            R1 += np.eye(R1.shape[0]) * sys.float_info.epsilon
-        
-        ones = np.ones(shape=(game.num_distinct_actions()[0],))
-
-        pi1 = np.linalg.inv(R0) @ ones
-        pi1 /= np.sum(pi1)
-
-        pi0 = np.linalg.inv(R1) @ ones
-        pi0 /= np.sum(pi0)
-
-        return np.array([pi0, pi1])
-    
-    else:
-        raise ValueError(f"Unknown nash computation method {method}")
+    except Exception as e:
+        print(f"Error while computing the Nash equilibrium using the method {method} : {e}")
+        return

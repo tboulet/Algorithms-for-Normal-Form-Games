@@ -83,14 +83,16 @@ def main(config: DictConfig):
         plot_config={"title": f"Policies Dynamics\n {run_name}", **plot_config},
     )
     ne_joint_policy = compute_nash_equilibrium(game, method=nash_computation_method)
-    plotter.add_data_policy_to_plot(
-        DataPolicyToPlot(
-            name="NE",
-            joint_policy=ne_joint_policy,
-            color="orange",
-            marker="x",
+    if ne_joint_policy is not None:
+        plotter.add_data_policy_to_plot(
+            DataPolicyToPlot(
+                name="NE",
+                joint_policy=ne_joint_policy,
+                color="orange",
+                marker="x",
+            )
         )
-    )
+
     if do_tb:
         writer = SummaryWriter(log_dir=f"tensorboard/{run_name}")
     if do_wandb:
