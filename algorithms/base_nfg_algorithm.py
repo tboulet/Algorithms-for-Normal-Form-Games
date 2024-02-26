@@ -20,11 +20,13 @@ class BaseNFGAlgorithm(ABC):
     def initialize_algorithm(
         self,
         game: Any,
+        joint_policy_pi: Optional[JointPolicy] = None,
     ) -> None:
         """Initializes the algorithm.
 
         Args:
             game (Any): the game to be solved
+            joint_policy_pi (Optional[JointPolicy], optional): if not None, force the algorithm to use this joint policy (if possible).
         """
         pass
 
@@ -82,7 +84,7 @@ class BaseNFGAlgorithm(ABC):
             n_actions (List[int]): the number of actions for each player
 
         Returns:
-            Policy: the initialized joint policy
+            JointPolicy: the initialized joint policy
         """
         joint_policy = [
             self.RANDOM_GENERATOR.random(n_player_actions)

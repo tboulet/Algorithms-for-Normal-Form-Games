@@ -19,7 +19,7 @@ from omegaconf import DictConfig, OmegaConf
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 
 # Project imports
-from core.utils import to_numeric, try_get_seed
+from core.utils import to_numeric, try_get, try_get_seed
 from core.typing import Policy, JointPolicy
 from core.online_plotter import DataPolicyToPlot, get_plotter
 from core.nash import compute_nash_conv, compute_nash_equilibrium
@@ -57,20 +57,29 @@ def main(config: DictConfig):
     game_config = config["game"]["game_config"]
     GameClass = game_name_to_nfg_solver[game_name]
     game = GameClass(**game_config)
-
+    n_players=game.num_players()
+    n_actions=game.num_distinct_actions()
+    
+    # Get the initial joint policy if specified from the game config
+    initial_joint_policy = try_get(config["game"], "initial_joint_policy", None)
+    if initial_joint_policy is not None:
+        assert len(initial_joint_policy) == n_players and all(
+            len(initial_joint_policy[i]) == n_actions[i] for i in range(n_players)
+        ), "The initial joint policy is not at the right format"
+    
     # Initialize the algorithm for learning in that game
     algo_name = config["algo"]["algo_name"]
     algo_config = config["algo"]["algo_config"]
     AlgoClass = algo_name_to_nfg_solver[algo_name]
     algo = AlgoClass(**algo_config)
-    algo.initialize_algorithm(game)
+    algo.initialize_algorithm(game, joint_policy_pi=initial_joint_policy)
 
     # Intialize the logging
     run_name = f"[{algo_name}]_[{game_name}]_{datetime.datetime.now().strftime('%dth%mmo_%Hh%Mmin%Ss')}_seed{seed}"
     print(f"Starting run {run_name}")
     plotter = get_plotter(
-        n_players=game.num_players(),
-        n_actions=game.num_distinct_actions(),
+        n_players=n_players,
+        n_actions=n_actions,
         plot_config={"title": f"Policies Dynamics\n {run_name}", **plot_config},
     )
     ne_joint_policy = compute_nash_equilibrium(game, method=nash_computation_method)
@@ -176,4 +185,4 @@ if __name__ == "__main__":
         main()
     stats = pstats.Stats(pr)
     stats.sort_stats(pstats.SortKey.TIME)
-    stats.dump_stats("logs/profile.prof")
+    stats.dump_stats("logs/profile_stats.prof")

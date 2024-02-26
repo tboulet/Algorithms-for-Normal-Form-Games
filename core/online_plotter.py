@@ -14,7 +14,7 @@ class DataPolicyToPlot:
     Args:
         name (str): the name of the metric it represents
         joint_policy (JointPolicy): the joint policy (a list of Policy (an array of n probabilities) for each player)
-        color (str): the color of the 
+        color (str): the color of the
         marker (str): the marker of the data representation
         is_unique (bool, optional): whether the data is unique, and should replace all previous data with the same name. Defaults to False.
     """
@@ -48,9 +48,9 @@ class OnlinePlotter:
         self.pause_time = pause_time
 
         # Create plot memory objects
-        self.name_dataPolicy_to_list_x_list_y: Dict[str, Tuple[List[float], List[float]]] = (
-            {}
-        )
+        self.name_dataPolicy_to_list_x_list_y: Dict[
+            str, Tuple[List[float], List[float]]
+        ] = {}
         self.name_dataPolicy_to_line2d: Dict[str, plt.Line2D] = {}
         self.plot_timestep = 0
 
@@ -75,15 +75,23 @@ class OnlinePlotter:
         if data_policy.name not in self.name_dataPolicy_to_list_x_list_y:
             self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
             (self.name_dataPolicy_to_line2d[data_policy.name],) = self.ax.plot(
-                [], [], data_policy.marker, color=data_policy.color, label=data_policy.name
+                [],
+                [],
+                data_policy.marker,
+                color=data_policy.color,
+                label=data_policy.name,
             )
             self.ax.legend()
         # If the data policy is unique, remove all previous data policies with the same name
         if data_policy.is_unique:
             self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
         # Add the data policy to the list
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(data_policy.joint_policy[0][0])
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(data_policy.joint_policy[1][0])
+        self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(
+            data_policy.joint_policy[0][0]
+        )
+        self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(
+            data_policy.joint_policy[1][0]
+        )
 
     def update_plot(self, force_update: bool = False):
         """Update the online plot with the data policies currently in memory.
@@ -184,7 +192,11 @@ class OnlinePlotterForACertainPlayer(OnlinePlotter):
         if data_policy.name not in self.name_dataPolicy_to_list_x_list_y:
             self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
             (self.name_dataPolicy_to_line2d[data_policy.name],) = self.ax.plot(
-                [], [], data_policy.marker, color=data_policy.color, label=data_policy.name
+                [],
+                [],
+                data_policy.marker,
+                color=data_policy.color,
+                label=data_policy.name,
             )
             self.ax.legend()
         # If the data policy is unique, remove all previous data policies with the same name

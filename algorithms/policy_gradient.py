@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 from games.base_nfg_game import BaseNFGGame
@@ -31,14 +31,18 @@ class PolicyGradient(BaseNFGAlgorithm):
     def initialize_algorithm(
         self,
         game: BaseNFGGame,
+        joint_policy_pi: Optional[JointPolicy] = None,
     ) -> None:
         self.game = game
         self.n_actions = game.num_distinct_actions()
         self.n_players = game.num_players()
 
-        self.joint_logits = np.exp(
-            self.initialize_randomly_joint_policy(n_actions=self.n_actions)
-        )
+        if joint_policy_pi is not None:
+            self.joint_logits = np.exp(
+                self.initialize_randomly_joint_policy(n_actions=self.n_actions)
+            )
+        else:
+            self.joint_logits = np.exp(joint_policy_pi)
         self.joint_q_values = [np.zeros(n_action) for n_action in self.n_actions]
 
         self.timestep: int = 0
