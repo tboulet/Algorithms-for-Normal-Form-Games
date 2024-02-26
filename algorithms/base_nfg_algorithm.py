@@ -74,6 +74,22 @@ class BaseNFGAlgorithm(ABC):
 
     # Helper methods
 
+    def action_index_to_action_repr(
+        self,
+        player: int,
+        action: int,
+    ) -> str:
+        """Returns the string representation of an action.
+
+        Args:
+            player (int): the player
+            action (int): the action
+
+        Returns:
+            str: the string representation of the action-th action of the player-th player
+        """
+        return action
+
     def initialize_randomly_joint_policy(
         self,
         n_actions: List[int],
