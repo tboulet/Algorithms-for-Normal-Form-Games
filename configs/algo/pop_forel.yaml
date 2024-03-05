@@ -1,0 +1,18 @@
+algo_name : population_forel
+algo_config :
+  # ForeL parameters
+  forel_config:
+    q_value_estimation_method : model-based
+    dynamics_method : rd
+    learning_rate_rd : 0.001
+    learning_rate_cum_values : 0.001
+    n_monte_carlo_q_evaluation : 20
+    regularizer : entropy
+  # Population FoReL parameters
+  population_timesteps_per_iterations : 10000
+  do_population_update : True
+  population_averaging : "arithmetic"
+  population_k : 3
+  population_sampling : "random"
+    
+    
