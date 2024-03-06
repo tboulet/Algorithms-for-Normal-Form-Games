@@ -75,9 +75,7 @@ class PopulationForel(Forel):
         # --- At the end of the iteration, update pi policy and restart the FoReL algo (but keep the pi policy) ---
         if self.timestep == self.population_timesteps_per_iterations:
             kept_policies = self.sample_policies()
-            print(f"Sampled policies: {kept_policies}")
             self.joint_policy_pi = self.average_policies(kept_policies)
-            print(f"New pi policy: {self.joint_policy_pi}")
 
             self.iteration += 1
             super().initialize_algorithm(
@@ -111,8 +109,10 @@ class PopulationForel(Forel):
 
             for i in range(len(joint_policies[0])):
                 averaged_policy[i] = np.prod(
-                    [joint_policy[i] for joint_policy in joint_policies]
+                    [joint_policy[i] for joint_policy in joint_policies], axis=0
                 ) ** (1 / len(joint_policies))
+
+            return averaged_policy
 
         elif self.population_averaging == "arithmetic":
             averaged_policy = [
@@ -123,6 +123,9 @@ class PopulationForel(Forel):
                 averaged_policy[i] = np.mean(
                     [joint_policy[i] for joint_policy in joint_policies], axis=0
                 )
+
+            return averaged_policy
+
         else:
             raise ValueError(
                 f"Unknown population_averaging method {self.population_averaging}"
