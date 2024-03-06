@@ -11,8 +11,8 @@ algo_config :
   # Population FoReL parameters
   population_timesteps_per_iterations : 10000
   do_population_update : True
-  population_averaging : "arithmetic"
-  population_k : 3
+  population_averaging : "geometric"
+  population_k : 100
   population_sampling : "random"
     
     
