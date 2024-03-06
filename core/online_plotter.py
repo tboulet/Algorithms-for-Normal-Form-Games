@@ -5,6 +5,9 @@ from typing import Dict, List, Tuple, Optional, Any
 
 import numpy as np
 
+from core.typing import JointPolicy
+from core.utils import get_shape
+
 
 @dataclass
 class DataPolicyToPlot:
@@ -85,14 +88,29 @@ class OnlinePlotter:
         # If the data policy is unique, remove all previous data policies with the same name
         if data_policy.is_unique:
             self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
-        # Add the data policy to the list
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(
-            data_policy.joint_policy[0][0]
-        )
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(
-            data_policy.joint_policy[1][0]
-        )
 
+        if get_shape(data_policy.joint_policy) == (2, 2):
+            # If the joint_policy represents a joint policy (so a (2,2) shaped object), add the data policy to the list
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(
+                data_policy.joint_policy[0][0]
+            )
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(
+                data_policy.joint_policy[1][0]
+            )
+        elif len(get_shape(data_policy.joint_policy)) == 3 and get_shape(data_policy.joint_policy)[1:] == (2, 2):
+            # If the joint_policy represents a list of joint policies (so a (n, 2, 2 shaped object)), add each joint policy to the list
+            for joint_policy_i in data_policy.joint_policy:
+                self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(
+                    joint_policy_i[0][0]
+                )
+                self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(
+                    joint_policy_i[1][0]
+                )
+        else:
+            raise ValueError(
+                "The joint_policy should be a (2,2) shaped object or a (n,2,2) shaped objects."
+            )
+    
     def update_plot(self, force_update: bool = False):
         """Update the online plot with the data policies currently in memory.
 
