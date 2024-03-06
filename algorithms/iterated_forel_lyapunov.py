@@ -3,6 +3,7 @@ import numpy as np
 from typing import Any, Dict, List, Optional
 
 from algorithms.forel import Forel
+from core.nash import compute_nash_equilibrium
 from core.online_plotter import DataPolicyToPlot
 from core.scheduler import Scheduler
 from core.utils import to_numeric
@@ -21,6 +22,7 @@ class IteratedForel(Forel):
         do_mu_update: bool,
         do_linear_interpolation_mu: bool,
         eta_scheduler_config: dict,
+        do_set_NE_as_init_mu: bool = False,
     ) -> None:
         """Initializes the Iterated FoReL algorithm.
 
@@ -40,6 +42,7 @@ class IteratedForel(Forel):
                 - start_value (float): the initial value of eta
                 - end_value (float): the final value of eta
                 - n_iterations (int): the number of iterations over which eta will decrease
+            do_set_NE_as_init_mu (bool): whether to set the Nash equilibrium as the mu policy at the end of each iteration, or not (for experimental purposes)
         """
         super().__init__(**forel_config)
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
@@ -47,6 +50,8 @@ class IteratedForel(Forel):
         self.do_linear_interpolation_mu = do_linear_interpolation_mu
         self.eta_scheduler = Scheduler(**eta_scheduler_config)
         self.lyapunov = True
+        self.do_set_NE_as_init_mu = do_set_NE_as_init_mu  # use Nash equilibrium as initial mu (for experimental purposes) =   do_set_NE_as_init_mu : False  # use Nash equilibrium as initial mu (for experimental purposes)
+
 
     # Interface methods
 
@@ -60,7 +65,10 @@ class IteratedForel(Forel):
         self.joint_policy_mu_k_minus_1 = self.initialize_randomly_joint_policy(
             n_actions=self.n_actions
         )
-        self.joint_policy_mu = deepcopy(self.joint_policy_pi)
+        if self.do_set_NE_as_init_mu:  # use Nash equilibrium as initial mu (for experimental purposes):
+            self.joint_policy_mu = compute_nash_equilibrium(game, method="LP")
+        else:
+            self.joint_policy_mu = deepcopy(self.joint_policy_pi)
 
     def learn(
         self,
