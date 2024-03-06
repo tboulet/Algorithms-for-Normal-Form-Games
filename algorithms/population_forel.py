@@ -56,10 +56,12 @@ class PopulationForel(Forel):
         game: BaseNFGGame,
         joint_policy_pi: Optional[JointPolicy] = None,
     ) -> None:
+        self.metrics = {}
         super().initialize_algorithm(game=game, joint_policy_pi=joint_policy_pi)
         self.iteration: int = 0
         self.population = [deepcopy(self.joint_policy_pi)]
-
+        self.kept_policies = []
+        
     def learn(
         self,
         joint_action: List[int],
@@ -68,26 +70,36 @@ class PopulationForel(Forel):
     ) -> None:
 
         # --- Do one learning step of FoReL ---
-        metrics = super().learn(joint_action=joint_action, probs=probs, rewards=rewards)
-
+        metrics_forel = super().learn(joint_action=joint_action, probs=probs, rewards=rewards)
+        self.metrics.update(metrics_forel)
+        
         self.population.append(deepcopy(self.joint_policy_pi))
 
         # --- At the end of the iteration, update pi policy and restart the FoReL algo (but keep the pi policy) ---
         if self.timestep == self.population_timesteps_per_iterations:
-            kept_policies = self.sample_policies()
-            self.joint_policy_pi = self.average_policies(kept_policies)
+            self.kept_policies = self.sample_policies()
+            self.joint_policy_pi = self.average_policies(self.kept_policies)
 
             self.iteration += 1
             super().initialize_algorithm(
                 game=self.game,
                 joint_policy_pi=self.joint_policy_pi,
             )
-
+            
+            # Add dataPolicies to plot
+            self.metrics["pi_sampled"] = DataPolicyToPlot(
+                name="π_sampled",
+                joint_policy=self.kept_policies,
+                color="black",
+                marker="o",
+                is_unique=True,
+            )
+                
         # Add the metrics and dataPolicies to plot
-        metrics["iteration"] = self.iteration
-        metrics["timestep"] = self.timestep
+        self.metrics["iteration"] = self.iteration
+        self.metrics["timestep"] = self.timestep
 
-        return metrics
+        return self.metrics
 
     def sample_policies(self) -> List[JointPolicy]:
         if self.population_sampling == "random":

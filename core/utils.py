@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Dict, Union
+from typing import Any, Dict, Tuple, Union
 
 import numpy as np
 
@@ -60,3 +60,24 @@ def try_get(dictionnary: Dict, key: str, default: Union[int, float, str, None]) 
         return dictionnary[key] if dictionnary[key] is not None else default
     except KeyError:
         return default
+
+
+def get_shape(
+    object: Any,
+    authorized_types: Tuple[type] = (np.ndarray, list, tuple, set),
+) -> Tuple[int]:
+    """Returns the shape of the object.
+    If the object is a list, tuple, set or np.ndarray, it will return the shape of the object.
+    If the object is not of the authorized types, it will return an empty tuple.
+
+    Args:
+        object (Any): the object
+        authorized_types (Tuple[type], optional): the authorized types for the object. Defaults to (np.ndarray, list, tuple, set).
+
+    Returns:
+        Tuple[int]: the shape of the object
+    """
+    if isinstance(object, authorized_types):
+        return (len(object), *get_shape(object[0]))
+    else:
+        return []
