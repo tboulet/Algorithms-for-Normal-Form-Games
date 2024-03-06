@@ -88,6 +88,8 @@ class PopulationBasedAlgorithm(BaseNFGAlgorithm):
 
                 return sampled_policies
 
+            else:
+                raise ValueError(f"Unknown greedy_mode {greedy_mode}")
         else:
             raise ValueError(
                 f"Unknown population_sampling method {sampling_pop_method}"
