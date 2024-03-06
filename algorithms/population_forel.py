@@ -9,7 +9,7 @@ from core.online_plotter import DataPolicyToPlot
 from core.scheduler import Scheduler
 from core.utils import to_numeric
 from games.base_nfg_game import BaseNFGGame
-from core.typing import JointPolicy
+from core.typing import JointPolicy, Policy
 from copy import deepcopy
 
 
@@ -61,7 +61,7 @@ class PopulationForel(Forel):
         self.iteration: int = 0
         self.population = [deepcopy(self.joint_policy_pi)]
         self.kept_policies = []
-        
+
     def learn(
         self,
         joint_action: List[int],
@@ -70,22 +70,26 @@ class PopulationForel(Forel):
     ) -> None:
 
         # --- Do one learning step of FoReL ---
-        metrics_forel = super().learn(joint_action=joint_action, probs=probs, rewards=rewards)
+        metrics_forel = super().learn(
+            joint_action=joint_action, probs=probs, rewards=rewards
+        )
         self.metrics.update(metrics_forel)
-        
+
         self.population.append(deepcopy(self.joint_policy_pi))
 
         # --- At the end of the iteration, update pi policy and restart the FoReL algo (but keep the pi policy) ---
         if self.timestep == self.population_timesteps_per_iterations:
             self.kept_policies = self.sample_policies()
-            self.joint_policy_pi = self.average_policies(self.kept_policies)
+            self.joint_policy_pi = self.average_list_of_joint_policies(
+                self.kept_policies
+            )
 
             self.iteration += 1
             super().initialize_algorithm(
                 game=self.game,
                 joint_policy_pi=self.joint_policy_pi,
             )
-            
+
             # Add dataPolicies to plot
             self.metrics["pi_sampled"] = DataPolicyToPlot(
                 name="π_sampled",
@@ -94,7 +98,7 @@ class PopulationForel(Forel):
                 marker="o",
                 is_unique=True,
             )
-                
+
         # Add the metrics and dataPolicies to plot
         self.metrics["iteration"] = self.iteration
         self.metrics["timestep"] = self.timestep
@@ -113,29 +117,46 @@ class PopulationForel(Forel):
                 f"Unknown population_sampling method {self.population_sampling}"
             )
 
-    def average_policies(self, joint_policies: List[JointPolicy]) -> JointPolicy:
+    def average_list_of_joint_policies(
+        self, list_joint_policies: List[JointPolicy]
+    ) -> JointPolicy:
+        """Agglomerates the joint policies using the population_averaging method.
+
+        Args:
+            list_joint_policies (List[JointPolicy]): a list of joint policies to agglomerate
+
+        Returns:
+            JointPolicy: the agglomerated joint policy
+        """
+        assert (
+            len(list_joint_policies) > 0
+        ), "The list of joint policies should not be empty"
+        n_players = len(list_joint_policies[0])
+        return [
+            self.average_list_of_policies(
+                [joint_policy[i] for joint_policy in list_joint_policies]
+            )
+            for i in range(n_players)
+        ]
+
+    def average_list_of_policies(self, list_policies: List[Policy]) -> Policy:
+        """Agglomerates the policies using the population_averaging method.
+
+        Args:
+            list_policies (List[Policy]): a list of policies to agglomerate
+
+        Returns:
+            Policy: the agglomerated policy
+        """
         if self.population_averaging == "geometric":
-            averaged_policy = [
-                np.ones_like(player_policy) for player_policy in joint_policies[0]
-            ]
-
-            for i in range(len(joint_policies[0])):
-                averaged_policy[i] = np.prod(
-                    [joint_policy[i] for joint_policy in joint_policies], axis=0
-                ) ** (1 / len(joint_policies))
-
+            n_policies = len(list_policies)
+            averaged_policy = np.prod(list_policies, axis=0) ** (1 / n_policies)
+            averaged_policy /= averaged_policy.sum()
             return averaged_policy
 
         elif self.population_averaging == "arithmetic":
-            averaged_policy = [
-                np.zeros_like(player_policy) for player_policy in joint_policies[0]
-            ]
-
-            for i in range(len(joint_policies[0])):
-                averaged_policy[i] = np.mean(
-                    [joint_policy[i] for joint_policy in joint_policies], axis=0
-                )
-
+            averaged_policy = np.mean(list_policies, axis=0)
+            averaged_policy /= averaged_policy.sum()
             return averaged_policy
 
         else:
