@@ -78,6 +78,9 @@ def get_shape(
         Tuple[int]: the shape of the object
     """
     if isinstance(object, authorized_types):
-        return (len(object), *get_shape(object[0]))
+        if len(object) == 0:
+            return (0,)
+        else:
+            return (len(object), *get_shape(object[0]))
     else:
         return []

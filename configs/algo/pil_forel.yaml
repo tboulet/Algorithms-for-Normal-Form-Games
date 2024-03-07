@@ -17,13 +17,14 @@ algo_config :
   # The method to use to update the population, either "geometric" or "arithmetic"
   population_averaging : "arithmetic"
   
-  # The sampler method and its configuration. Method is either "random" or "periodic"
+  # The sampler method and its configuration. Method is either "random", "periodic" or "last" (equivalent to I-FoReL)
   sampler_population:
-    method : "periodic"
-    # The size of the population sampled
+    method : "random"
+    # method : "periodic"
+    # method : "last"
     size_population : 100
-    # The number of policies to sample from last policies. If None/unspeficied, all policies will be candidates.
     n_last_policies_to_sample : 10000
+    distribution : "uniform"
 
   # The eta scheduler configuration
   eta_scheduler_config:

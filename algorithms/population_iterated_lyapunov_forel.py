@@ -43,7 +43,8 @@ class PopulationIteratedLyapunovForel(Forel):
         self.population_averaging = population_averaging
         self.sampler_population = sampler_population
         self.eta_scheduler = Scheduler(**eta_scheduler_config)
-
+        self.lyapunov = True
+        
     def initialize_algorithm(
         self,
         game: BaseNFGGame,
@@ -200,7 +201,10 @@ class PopulationIteratedLyapunovForel(Forel):
             candidates_policies = self.population[-n_last_policies_candidates:]
             size_population = self.sampler_population["size_population"]
             return candidates_policies[::n_last_policies_candidates//size_population]
-            
+        
+        elif sampling_pop_method == "last":
+            return [self.population[-1]]
+        
         elif sampling_pop_method == "greedy":
             raise NotImplementedError("Greedy sampling not implemented yet")
 
