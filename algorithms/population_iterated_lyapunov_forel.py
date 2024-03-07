@@ -186,7 +186,8 @@ class PopulationIteratedLyapunovForel(Forel):
     def sample_policies(self) -> List[JointPolicy]:
         sampling_pop_method = self.sampler_population["method"]
         if sampling_pop_method == "random":
-            n_last_policies_candidates = try_get(self.sampler_population, "n_last_policies_candidates", len(self.population))
+            n_last_policies_candidates = self.sampler_population["n_last_policies_to_sample"]
+            n_last_policies_candidates = n_last_policies_candidates if n_last_policies_candidates is not None else len(self.population)
             candidates_policies = self.population[-n_last_policies_candidates:]
             size_population = self.sampler_population["size_population"]
             if self.sampler_population["distribution"] == "uniform":
@@ -197,7 +198,8 @@ class PopulationIteratedLyapunovForel(Forel):
                 return random.choices(candidates_policies, weights=weights, k=size_population)
 
         elif sampling_pop_method == "periodic":
-            n_last_policies_candidates = try_get(self.sampler_population, "n_last_policies_candidates", len(self.population))
+            n_last_policies_candidates = self.sampler_population["n_last_policies_to_sample"]
+            n_last_policies_candidates = n_last_policies_candidates if n_last_policies_candidates is not None else len(self.population)
             candidates_policies = self.population[-n_last_policies_candidates:]
             size_population = self.sampler_population["size_population"]
             return candidates_policies[::n_last_policies_candidates//size_population]
