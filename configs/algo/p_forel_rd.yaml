@@ -1,0 +1,35 @@
+algo_name : population_forel
+algo_config :
+  # ============ ForeL parameters ============
+  forel_config:
+    q_value_estimation_method : model-based
+    dynamics_method : rd
+    learning_rate_rd : 0.001
+    learning_rate_cum_values : 0.001
+    n_monte_carlo_q_evaluation : 20
+    regularizer : entropy
+  
+  # ============ Population FoReL parameters ===========
+
+  # How many timesteps to do before updating the population
+  population_timesteps_per_iterations : 10000
+
+  # Whether to update the population. If False, this is equivalent to ForeL
+  do_population_update : True
+
+  # The method to use to update the population, either "geometric" or "arithmetic"
+  population_averaging : "geometric"
+
+  # The sampler method and its configuration. Method is either "random" or "periodic"
+  sampler_population :
+    method : "random"
+
+    # The size of the population sampled
+    size_population : 100
+    
+    # The number of last policies to sample from. If None/unspeficied, all policies will be candidates.
+    n_last_policies_candidates : 100000
+    
+    # The weights applied to the policies sampled, either "uniform" or "exponential".
+    # If exponential, the weights are computed as 2 ** (2i/len(candidates)) where i is the index of the policy in the list of policies.
+    distribution : "exponential"

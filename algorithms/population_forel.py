@@ -7,7 +7,7 @@ import random
 from algorithms.forel import Forel
 from core.online_plotter import DataPolicyToPlot
 from core.scheduler import Scheduler
-from core.utils import to_numeric
+from core.utils import to_numeric, try_get
 from games.base_nfg_game import BaseNFGGame
 from core.typing import JointPolicy, Policy
 from copy import deepcopy
@@ -20,9 +20,8 @@ class PopulationForel(Forel):
         # Population FoReL specific parameters
         population_timesteps_per_iterations: int,
         do_population_update: bool,
+        sampler_population : Dict[str, Any],
         population_averaging: str = "geometric",
-        population_k: int = 5,
-        population_sampling: str = "random",
     ) -> None:
         """Initializes the Iterated FoReL algorithm.
 
@@ -36,9 +35,8 @@ class PopulationForel(Forel):
                 - regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
             population_timesteps_per_iterations (int): the number of timesteps per iteration
             do_population_update (bool): whether to update the population at each iteration, or not
+            sampler_population (Dict[str, Any]): the configuration of the population sampler.
             population_averaging (str): the type of averaging used to update the population (either "geometric" or "arithmetic")
-            population_k (int): the number of policies in the population
-            population_sampling (str): the type of sampling used to update the population (either "random" or "greedy")
         """
         super().__init__(**forel_config)
         self.population_timesteps_per_iterations = to_numeric(
@@ -46,8 +44,7 @@ class PopulationForel(Forel):
         )
         self.do_population_update = do_population_update
         self.population_averaging = population_averaging
-        self.population_k = population_k
-        self.population_sampling = population_sampling
+        self.sampler_population = sampler_population
 
         self.lyapunov = False
 
@@ -78,7 +75,7 @@ class PopulationForel(Forel):
         self.population.append(deepcopy(self.joint_policy_pi))
 
         # --- At the end of the iteration, update pi policy and restart the FoReL algo (but keep the pi policy) ---
-        if self.timestep == self.population_timesteps_per_iterations:
+        if self.do_population_update and self.timestep == self.population_timesteps_per_iterations:
             self.kept_policies = self.sample_policies()
             self.joint_policy_pi = self.average_list_of_joint_policies(
                 self.kept_policies
@@ -106,10 +103,25 @@ class PopulationForel(Forel):
         return self.metrics
 
     def sample_policies(self) -> List[JointPolicy]:
-        if self.population_sampling == "random":
-            return random.sample(self.population, self.population_k)
+        sampling_pop_method = self.sampler_population["method"]
+        if sampling_pop_method == "random":
+            n_last_policies_candidates = try_get(self.sampler_population, "n_last_policies_candidates", len(self.population))
+            candidates_policies = self.population[-n_last_policies_candidates:]
+            size_population = self.sampler_population["size_population"]
+            if self.sampler_population["distribution"] == "uniform":
+                return random.sample(candidates_policies, size_population)
+            elif self.sampler_population["distribution"] == "exponential":
+                c = len(candidates_policies)
+                weights = [2 ** (2*x/c) for x in range(c)]
+                return random.choices(candidates_policies, weights=weights, k=size_population)
 
-        elif self.population_sampling == "greedy":
+        elif sampling_pop_method == "periodic":
+            n_last_policies_candidates = try_get(self.sampler_population, "n_last_policies_candidates", len(self.population))
+            candidates_policies = self.population[-n_last_policies_candidates:]
+            size_population = self.sampler_population["size_population"]
+            return candidates_policies[::n_last_policies_candidates//size_population]
+            
+        elif sampling_pop_method == "greedy":
             raise NotImplementedError("Greedy sampling not implemented yet")
 
         else:
