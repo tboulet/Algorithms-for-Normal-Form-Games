@@ -9,10 +9,10 @@ from algorithms.population_forel import PopulationForel
 from algorithms.population_iterated_lyapunov_forel import PopulationIteratedLyapunovForel
 
 algo_name_to_nfg_solver: Dict[str, Type[BaseNFGAlgorithm]] = {
-    "policy_gradient": PolicyGradient,
-    "iterated_forel_lyapunov": IteratedForel,
-    "forel": Forel,
-    "population_forel": PopulationForel,
-    "PIL_FoReL" : PopulationIteratedLyapunovForel,
-    "PAL_FoReL" : PopulationAlternatingLyapunovForel,
+    "Policy Gradients": PolicyGradient,
+    "IL-Forel": IteratedForel,
+    "FoReL": Forel,
+    "Population-FoReL": PopulationForel,
+    "PIL-FoReL" : PopulationIteratedLyapunovForel,
+    "PAL-FoReL" : PopulationAlternatingLyapunovForel,
 }

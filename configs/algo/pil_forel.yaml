@@ -1,4 +1,4 @@
-algo_name : PIL_FoReL
+algo_name : PIL-FoReL
 algo_config :
   # ============ ForeL parameters ============
   forel_config:

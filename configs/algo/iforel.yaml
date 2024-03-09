@@ -1,4 +1,4 @@
-algo_name : iterated_forel_lyapunov
+algo_name : IL-Forel
 algo_config :
   # ForeL parameters
   forel_config:

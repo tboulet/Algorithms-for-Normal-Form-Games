@@ -1,4 +1,4 @@
-algo_name : forel
+algo_name : FoReL
 algo_config :
   q_value_estimation_method : model-based
   dynamics_method : rd

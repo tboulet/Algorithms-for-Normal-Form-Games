@@ -1,4 +1,4 @@
-algo_name : population_forel
+algo_name : Population-FoReL
 algo_config :
   # ============ ForeL parameters ============
   forel_config:
