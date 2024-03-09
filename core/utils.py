@@ -1,6 +1,6 @@
 import sys
 from typing import Any, Dict, Tuple, Union
-
+import importlib
 import numpy as np
 
 
@@ -84,3 +84,23 @@ def get_shape(
             return (len(object), *get_shape(object[0]))
     else:
         return []
+
+
+def instantiate_class(config: dict) -> Any:
+    """Instantiate a class from a dictionnary that contains a key "class_string" with the format "path.to.module:ClassName"
+    and that contains other keys that will be passed as arguments to the class constructor
+
+    Args:
+        config (dict): the configuration dictionnary
+
+    Returns:
+        Any: the instantiated class
+    """
+    assert (
+        "class_string" in config
+    ), "The class_string should be specified in the config"
+    class_string: str = config["class_string"]
+    module_name, class_name = class_string.split(":")
+    module = importlib.import_module(module_name)
+    Class = getattr(module, class_name)
+    return Class(**{k: v for k, v in config.items() if k != "class_string"})

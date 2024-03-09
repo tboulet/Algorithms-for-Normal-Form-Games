@@ -1,0 +1,22 @@
+algo_name : iterated_forel_lyapunov
+algo_config :
+  # ForeL parameters
+  forel_config:
+    q_value_estimation_method : mc
+    dynamics_method : rd
+    learning_rate_rd : 0.001
+    learning_rate_cum_values : 0.001
+    n_monte_carlo_q_evaluation : 20
+    regularizer : entropy
+  # Iterated FoReL Lyapunov parameters
+  n_timesteps_per_iterations : 2000
+  do_mu_update : True
+  do_linear_interpolation_mu : False
+  eta_scheduler_config:
+    type : constant    # use 'constant' if mu changes through training
+    start_value : 1
+    end_value : 0.05
+    n_steps : 50000
+  do_set_NE_as_init_mu : False  # use Nash equilibrium as initial mu (for experimental purposes)
+    
+    
