@@ -6,7 +6,7 @@ from algorithms.forel import Forel
 from core.nash import compute_nash_equilibrium
 from core.online_plotter import DataPolicyToPlot
 from core.scheduler import Scheduler
-from core.utils import to_numeric
+from core.utils import instantiate_class, to_numeric
 from games.base_nfg_game import BaseNFGGame
 from core.typing import JointPolicy
 from copy import deepcopy
@@ -48,7 +48,7 @@ class IteratedForel(Forel):
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
         self.do_mu_update = do_mu_update
         self.do_linear_interpolation_mu = do_linear_interpolation_mu
-        self.eta_scheduler = Scheduler(**eta_scheduler_config)
+        self.eta_scheduler : Scheduler = instantiate_class(config=eta_scheduler_config)
         self.lyapunov = True
         self.do_set_NE_as_init_mu = do_set_NE_as_init_mu  # use Nash equilibrium as initial mu (for experimental purposes) =   do_set_NE_as_init_mu : False  # use Nash equilibrium as initial mu (for experimental purposes)
 

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from algorithms.forel import Forel
 from core.online_plotter import DataPolicyToPlot
 from core.scheduler import Scheduler
-from core.utils import to_numeric, try_get
+from core.utils import instantiate_class, to_numeric, try_get
 from games.base_nfg_game import BaseNFGGame
 from core.typing import JointPolicy, Policy
 from copy import deepcopy
@@ -42,7 +42,7 @@ class PopulationIteratedLyapunovForel(Forel):
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
         self.population_averaging = population_averaging
         self.sampler_population = sampler_population
-        self.eta_scheduler = Scheduler(**eta_scheduler_config)
+        self.eta_scheduler : Scheduler = instantiate_class(config=eta_scheduler_config)
         self.lyapunov = True
         
     def initialize_algorithm(

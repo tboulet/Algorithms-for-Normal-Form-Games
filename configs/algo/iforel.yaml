@@ -13,10 +13,8 @@ algo_config :
   do_mu_update : True
   do_linear_interpolation_mu : False
   eta_scheduler_config:
-    type : constant    # use 'constant' if mu changes through training
-    start_value : 1
-    end_value : 0.05
-    n_steps : 50000
+    class_string : core.scheduler:Constant
+    value : 1
   do_set_NE_as_init_mu : False  # use Nash equilibrium as initial mu (for experimental purposes)
     
     
