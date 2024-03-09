@@ -9,14 +9,12 @@ algo_config :
     n_monte_carlo_q_evaluation : 20
     regularizer : entropy
   
-  # ============ Population Iterated Lyapunov FoReL parameters ===========
 
-  # How many timesteps to do before updating the population
-  n_timesteps_per_iterations : 10000
 
+  # ============ Population parameters ============
   # The method to use to update the population, either "geometric" or "arithmetic"
   population_averaging : "arithmetic"
-  
+
   # The sampler method and its configuration. Method is either "random", "periodic" or "last" (equivalent to I-FoReL)
   sampler_population:
     method : "random"
@@ -26,6 +24,12 @@ algo_config :
     n_last_policies_to_sample : 10000
     distribution : "uniform"
 
+
+
+  # ============ Population Iterated Lyapunov FoReL parameters ===========
+  # How many timesteps to do before updating the population
+  n_timesteps_per_iterations : 10000
+  
   # The eta scheduler configuration
   eta_scheduler_config:
     class_string : core.scheduler:Constant

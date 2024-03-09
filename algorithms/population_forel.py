@@ -1,7 +1,9 @@
+from ast import For
 import sys
 import numpy as np
 from typing import Any, Dict, List, Optional
 import random
+from algorithms.algorithms_population import PopulationBasedAlgorithm
 
 
 from algorithms.forel import Forel
@@ -13,15 +15,20 @@ from core.typing import JointPolicy, Policy
 from copy import deepcopy
 
 
-class PopulationForel(Forel):
+class PopulationForel(
+    PopulationBasedAlgorithm,
+    Forel,
+):
     def __init__(
         self,
+        # FoReL specific parameters
         forel_config: Dict[str, Any],
-        # Population FoReL specific parameters
+        # Population parameters
+        population_averaging: str,
+        sampler_population: Dict[str, Any],
+        # P-FoReL specific parameters
         population_timesteps_per_iterations: int,
         do_population_update: bool,
-        sampler_population : Dict[str, Any],
-        population_averaging: str = "geometric",
     ) -> None:
         """Initializes the Iterated FoReL algorithm.
 
@@ -38,14 +45,15 @@ class PopulationForel(Forel):
             sampler_population (Dict[str, Any]): the configuration of the population sampler.
             population_averaging (str): the type of averaging used to update the population (either "geometric" or "arithmetic")
         """
-        super().__init__(**forel_config)
-        self.population_timesteps_per_iterations = to_numeric(
-            population_timesteps_per_iterations
+        Forel.__init__(self, **forel_config)
+        PopulationBasedAlgorithm.__init__(
+            self,
+            sampler_population=sampler_population,
+            population_averaging=population_averaging,
         )
+        
+        self.population_timesteps_per_iterations = population_timesteps_per_iterations
         self.do_population_update = do_population_update
-        self.population_averaging = population_averaging
-        self.sampler_population = sampler_population
-
         self.lyapunov = False
 
     def initialize_algorithm(

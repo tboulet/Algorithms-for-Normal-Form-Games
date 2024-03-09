@@ -2,6 +2,8 @@ import random
 import sys
 import numpy as np
 from typing import Any, Dict, List, Optional
+from algorithms.algorithms_lyapunov import LyapunovBasedAlgorithm
+from algorithms.algorithms_population import PopulationBasedAlgorithm
 
 from algorithms.forel import Forel
 from core.online_plotter import DataPolicyToPlot
@@ -12,15 +14,20 @@ from core.typing import JointPolicy, Policy
 from copy import deepcopy
 
 
-class PopulationIteratedLyapunovForel(Forel):
+class PopulationIteratedLyapunovForel(
+    LyapunovBasedAlgorithm,
+    PopulationBasedAlgorithm,
+    Forel,
+):
     def __init__(
         self,
         # FoReL specific parameters
         forel_config: Dict[str, Any],
-        # Population Iterated Lyapunov FoReL specific parameters
-        n_timesteps_per_iterations: int,
+        # Population parameters
         population_averaging: str,
         sampler_population: Dict[str, Any],
+        # PIL-FoReL specific parameters
+        n_timesteps_per_iterations: int,
         eta_scheduler_config: dict,
     ) -> None:
         """Initializes the Population Iterated Lyapunov FoReL algorithm.
@@ -38,13 +45,18 @@ class PopulationIteratedLyapunovForel(Forel):
             sampler_population (Dict[str, Any]): the configuration of the population sampler.
             eta_scheduler_config (dict): the configuration of the eta scheduler.
         """
-        super().__init__(**forel_config)
+        Forel.__init__(self, **forel_config)
+        PopulationBasedAlgorithm.__init__(
+            self,
+            sampler_population=sampler_population,
+            population_averaging=population_averaging,
+        )
+        LyapunovBasedAlgorithm.__init__(self)
+
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
-        self.population_averaging = population_averaging
-        self.sampler_population = sampler_population
-        self.eta_scheduler : Scheduler = instantiate_class(config=eta_scheduler_config)
+        self.eta_scheduler: Scheduler = instantiate_class(config=eta_scheduler_config)
         self.lyapunov = True
-        
+
     def initialize_algorithm(
         self,
         game: BaseNFGGame,
@@ -79,7 +91,7 @@ class PopulationIteratedLyapunovForel(Forel):
 
         # --- Update the population ---
         self.population.append(deepcopy(self.joint_policy_pi))
-        
+
         # --- At the end of the iteration, update mu and restart the FoReL algo (but keep the pi policy) ---
         if self.timestep == self.n_timesteps_per_iterations:
             self.kept_policies = self.sample_policies()
@@ -100,7 +112,7 @@ class PopulationIteratedLyapunovForel(Forel):
                 marker="o",
                 is_unique=True,
             )
-            
+
         # Add the metrics and dataPolicies to plot
         self.metrics["iteration"] = self.iteration
         self.metrics["timestep"] = self.timestep
@@ -130,134 +142,3 @@ class PopulationIteratedLyapunovForel(Forel):
         return self.eta_scheduler.get_value(
             self.iteration * self.n_timesteps_per_iterations + self.timestep
         )
-
-    def lyapunov_reward(
-        self,
-        chosen_actions: List[int],
-        pi: JointPolicy,
-        mu: JointPolicy,
-    ) -> List[float]:
-        """Implements the part of the Lyapunov reward modification that depends on the chosen actions.
-
-        Args:
-            player (int): the player who chose the action
-            chosen_actions (List[int]): the chosen actions of the players
-            pi (JointPolicy): the joint policy used to choose the actions
-            mu (JointPolicy): the regularization joint policy
-            eta (float): a parameter of the algorithm
-
-        Returns:
-            List[float]: the modified rewards
-        """
-        lyap_reward = np.zeros(self.n_players)
-        eta = self.get_eta()
-        if eta == 0:
-            return 0
-        n_players = len(pi)
-        eps = sys.float_info.epsilon
-        for i in range(n_players):
-            j = 1 - i
-            act_i = chosen_actions[i]
-            act_j = chosen_actions[j]
-            lyap_reward[i] = (
-                lyap_reward[i]
-                - eta * np.log(pi[i][act_i] / mu[i][act_i] + eps)
-                + eta * np.log(pi[j][act_j] / mu[j][act_j] + eps)
-            )
-
-        return lyap_reward
-
-    def transform_q_value(self) -> None:
-        eta = self.get_eta()
-        for player in range(len(self.joint_q_values)):
-            opponent_policy = self.joint_policy_pi[1 - player]
-            opponent_term = (
-                opponent_policy
-                * np.log(opponent_policy / self.joint_policy_mu[1 - player])
-            ).sum()
-            player_term = np.log(
-                self.joint_policy_pi[player] / self.joint_policy_mu[player]
-            )
-
-            self.joint_q_values[player] = self.joint_q_values[player] + eta * (
-                -player_term + opponent_term
-            )
-
-    def sample_policies(self) -> List[JointPolicy]:
-        sampling_pop_method = self.sampler_population["method"]
-        if sampling_pop_method == "random":
-            n_last_policies_candidates = self.sampler_population["n_last_policies_to_sample"]
-            n_last_policies_candidates = n_last_policies_candidates if n_last_policies_candidates is not None else len(self.population)
-            candidates_policies = self.population[-n_last_policies_candidates:]
-            size_population = self.sampler_population["size_population"]
-            if self.sampler_population["distribution"] == "uniform":
-                return random.sample(candidates_policies, size_population)
-            elif self.sampler_population["distribution"] == "exponential":
-                c = len(candidates_policies)
-                weights = [2 ** (2*x/c) for x in range(c)]
-                return random.choices(candidates_policies, weights=weights, k=size_population)
-
-        elif sampling_pop_method == "periodic":
-            n_last_policies_candidates = self.sampler_population["n_last_policies_to_sample"]
-            n_last_policies_candidates = n_last_policies_candidates if n_last_policies_candidates is not None else len(self.population)
-            candidates_policies = self.population[-n_last_policies_candidates:]
-            size_population = self.sampler_population["size_population"]
-            return candidates_policies[::n_last_policies_candidates//size_population]
-        
-        elif sampling_pop_method == "last":
-            return [self.population[-1]]
-        
-        elif sampling_pop_method == "greedy":
-            raise NotImplementedError("Greedy sampling not implemented yet")
-
-        else:
-            raise ValueError(
-                f"Unknown population_sampling method {self.population_sampling}"
-            )
-
-    def average_list_of_joint_policies(
-        self, list_joint_policies: List[JointPolicy]
-    ) -> JointPolicy:
-        """Agglomerates the joint policies using the population_averaging method.
-
-        Args:
-            list_joint_policies (List[JointPolicy]): a list of joint policies to agglomerate
-
-        Returns:
-            JointPolicy: the agglomerated joint policy
-        """
-        assert (
-            len(list_joint_policies) > 0
-        ), "The list of joint policies should not be empty"
-        n_players = len(list_joint_policies[0])
-        return [
-            self.average_list_of_policies(
-                [joint_policy[i] for joint_policy in list_joint_policies]
-            )
-            for i in range(n_players)
-        ]
-
-    def average_list_of_policies(self, list_policies: List[Policy]) -> Policy:
-        """Agglomerates the policies using the population_averaging method.
-
-        Args:
-            list_policies (List[Policy]): a list of policies to agglomerate
-
-        Returns:
-            Policy: the agglomerated policy
-        """
-        if self.population_averaging == "geometric":
-            n_policies = len(list_policies)
-            averaged_policy = np.prod(list_policies, axis=0) ** (1 / n_policies)
-            averaged_policy /= averaged_policy.sum()
-            return averaged_policy
-
-        elif self.population_averaging == "arithmetic":
-            averaged_policy = np.mean(list_policies, axis=0)
-            averaged_policy /= averaged_policy.sum()
-            return averaged_policy
-
-        else:
-            raise ValueError(
-                f"Unknown population_averaging method {self.population_averaging}"
-            )

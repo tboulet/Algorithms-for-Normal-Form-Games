@@ -1,18 +1,22 @@
 import sys
 import numpy as np
 from typing import Any, Dict, List, Optional
+from algorithms.algorithms_lyapunov import LyapunovBasedAlgorithm
 
 from algorithms.forel import Forel
 from core.nash import compute_nash_equilibrium
 from core.online_plotter import DataPolicyToPlot
-from core.scheduler import Scheduler
+from core.scheduler import Linear, Scheduler
 from core.utils import instantiate_class, to_numeric
 from games.base_nfg_game import BaseNFGGame
 from core.typing import JointPolicy
 from copy import deepcopy
 
 
-class IteratedForel(Forel):
+class IteratedForel(
+    LyapunovBasedAlgorithm,
+    Forel,
+):
     def __init__(
         self,
         # FoReL specific parameters
@@ -48,10 +52,9 @@ class IteratedForel(Forel):
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
         self.do_mu_update = do_mu_update
         self.do_linear_interpolation_mu = do_linear_interpolation_mu
-        self.eta_scheduler : Scheduler = instantiate_class(config=eta_scheduler_config)
+        self.eta_scheduler: Scheduler = instantiate_class(config=eta_scheduler_config)
         self.lyapunov = True
         self.do_set_NE_as_init_mu = do_set_NE_as_init_mu  # use Nash equilibrium as initial mu (for experimental purposes) =   do_set_NE_as_init_mu : False  # use Nash equilibrium as initial mu (for experimental purposes)
-
 
     # Interface methods
 
@@ -65,7 +68,9 @@ class IteratedForel(Forel):
         self.joint_policy_mu_k_minus_1 = self.initialize_randomly_joint_policy(
             n_actions=self.n_actions
         )
-        if self.do_set_NE_as_init_mu:  # use Nash equilibrium as initial mu (for experimental purposes):
+        if (
+            self.do_set_NE_as_init_mu
+        ):  # use Nash equilibrium as initial mu (for experimental purposes):
             self.joint_policy_mu = compute_nash_equilibrium(game, method="LP")
         else:
             self.joint_policy_mu = deepcopy(self.joint_policy_pi)
@@ -163,63 +168,10 @@ class IteratedForel(Forel):
         )
 
     def get_interpolation_rate_alpha(self) -> float:
-        return Scheduler(
-            type="linear",
+        return Linear(
             start_value=0,
             end_value=1,
             n_steps=self.n_timesteps_per_iterations // 2,
             upper_bound=1,
             lower_bound=0,
         ).get_value(self.timestep)
-
-    def lyapunov_reward(
-        self,
-        chosen_actions: List[int],
-        pi: JointPolicy,
-        mu: JointPolicy,
-    ) -> List[float]:
-        """Implements the part of the Lyapunov reward modification that depends on the chosen actions.
-
-        Args:
-            player (int): the player who chose the action
-            chosen_actions (List[int]): the chosen actions of the players
-            pi (JointPolicy): the joint policy used to choose the actions
-            mu (JointPolicy): the regularization joint policy
-            eta (float): a parameter of the algorithm
-
-        Returns:
-            List[float]: the modified rewards
-        """
-        lyap_reward = np.zeros(self.n_players)
-        eta = self.get_eta()
-        if eta == 0:
-            return 0
-        n_players = len(pi)
-        eps = sys.float_info.epsilon
-        for i in range(n_players):
-            j = 1 - i
-            act_i = chosen_actions[i]
-            act_j = chosen_actions[j]
-            lyap_reward[i] = (
-                lyap_reward[i]
-                - eta * np.log(pi[i][act_i] / mu[i][act_i] + eps)
-                + eta * np.log(pi[j][act_j] / mu[j][act_j] + eps)
-            )
-
-        return lyap_reward
-
-    def transform_q_value(self) -> None:
-        eta = self.get_eta()
-        for player in range(len(self.joint_q_values)):
-            opponent_policy = self.joint_policy_pi[1 - player]
-            opponent_term = (
-                opponent_policy
-                * np.log(opponent_policy / self.joint_policy_mu[1 - player])
-            ).sum()
-            player_term = np.log(
-                self.joint_policy_pi[player] / self.joint_policy_mu[player]
-            )
-
-            self.joint_q_values[player] = self.joint_q_values[player] + eta * (
-                -player_term + opponent_term
-            )
