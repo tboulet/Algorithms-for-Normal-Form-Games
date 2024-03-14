@@ -37,7 +37,7 @@ class PolicyGradient(BaseNFGAlgorithm):
         self.n_actions = game.num_distinct_actions()
         self.n_players = game.num_players()
 
-        if joint_policy_pi is not None:
+        if joint_policy_pi is None:
             self.joint_logits = np.exp(
                 self.initialize_randomly_joint_policy(n_actions=self.n_actions)
             )

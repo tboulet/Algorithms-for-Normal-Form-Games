@@ -3,15 +3,16 @@ algo_config :
 
   # ============ ForeL parameters ============
   forel_config:
-    q_value_estimation_method : model-based
+    q_value_estimation_method : mc
     dynamics_method : rd
     learning_rate_rd : 0.001
     learning_rate_cum_values : 0.001
     n_monte_carlo_q_evaluation : 20
     regularizer : entropy
 
+    
   # ============ Iterated Lyapunov FoReL parameters ===========
-  n_timesteps_per_iterations : 10000
+  n_timesteps_per_iterations : 2000
   do_mu_update : True
   do_linear_interpolation_mu : False
   eta_scheduler_config:

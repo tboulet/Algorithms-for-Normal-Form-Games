@@ -11,7 +11,6 @@ from games.base_nfg_game import BaseNFGGame
 
 class BaseNFGAlgorithm(ABC):
     """The base class for any model-free Normal-Form Game solver.
-    It must be able to interact with a pyspiel game object for finding a good joint policy for the game.
     """
 
     RANDOM_GENERATOR = np.random.default_rng(42)

@@ -5,6 +5,9 @@ from typing import Dict, List, Tuple, Optional, Any
 
 import numpy as np
 
+from core.typing import JointPolicy
+from core.utils import get_shape
+
 
 @dataclass
 class DataPolicyToPlot:
@@ -85,13 +88,28 @@ class OnlinePlotter:
         # If the data policy is unique, remove all previous data policies with the same name
         if data_policy.is_unique:
             self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
-        # Add the data policy to the list
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(
-            data_policy.joint_policy[0][0]
-        )
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(
-            data_policy.joint_policy[1][0]
-        )
+
+        if len(get_shape(data_policy.joint_policy)) == 2:
+            # If the joint_policy represents a joint policy (so a (n_players, n_action_per_players) shaped object), add the data policy to the list
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(
+                data_policy.joint_policy[0][0]
+            )
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(
+                data_policy.joint_policy[1][0]
+            )
+        elif len(get_shape(data_policy.joint_policy)) == 3:
+            # If the joint_policy represents a list of joint policies (so a (n, n_players, n_action_per_players) shaped object), add each joint policy to the list
+            for joint_policy_i in data_policy.joint_policy:
+                self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(
+                    joint_policy_i[0][0]
+                )
+                self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(
+                    joint_policy_i[1][0]
+                )
+        else:
+            raise ValueError(
+                "The joint_policy should be a (n, n_players, n_action_per_players) shaped objects, or a (n_players, n_action_per_players) shaped object."
+            )
 
     def update_plot(self, force_update: bool = False):
         """Update the online plot with the data policies currently in memory.
@@ -202,12 +220,21 @@ class OnlinePlotterForACertainPlayer(OnlinePlotter):
         # If the data policy is unique, remove all previous data policies with the same name
         if data_policy.is_unique:
             self.name_dataPolicy_to_list_x_list_y[data_policy.name] = ([], [])
+            
         # Add the data policy to the list
-        point_x = np.sum(self.vertices_x * data_policy.joint_policy[self.player_index])
-        point_y = np.sum(self.vertices_y * data_policy.joint_policy[self.player_index])
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(point_x)
-        self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(point_y)
-
+        if len(get_shape(data_policy.joint_policy)) == 2:
+            # If the joint_policy represents a joint policy (so a (n_players, n_action_per_players) shaped object), add the data policy to the list
+            point_x = np.sum(self.vertices_x * data_policy.joint_policy[self.player_index])
+            point_y = np.sum(self.vertices_y * data_policy.joint_policy[self.player_index])
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(point_x)
+            self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(point_y)
+        elif len(get_shape(data_policy.joint_policy)) == 3:
+            # If the joint_policy represents a list of joint policies (so a (n, n_players, n_action_per_players) shaped object), add each joint policy to the list
+            for joint_policy_i in data_policy.joint_policy:
+                point_x = np.sum(self.vertices_x * joint_policy_i[self.player_index])
+                point_y = np.sum(self.vertices_y * joint_policy_i[self.player_index])
+                self.name_dataPolicy_to_list_x_list_y[data_policy.name][0].append(point_x)
+                self.name_dataPolicy_to_list_x_list_y[data_policy.name][1].append(point_y)
 
 class OnlinePlotterForNPlayers(OnlinePlotter):
     """An object to generate a 2D plot online and visualize it for each player. It contains a plotter for each player."""
@@ -221,7 +248,7 @@ class OnlinePlotterForNPlayers(OnlinePlotter):
         update_frequency: int = 10000,
         pause_time: float = 0.01,
     ):
-        self.player_idx_to_plotter: Dict[int, OnlinePlotter] = {
+        self.player_idx_to_plotter: Dict[int, OnlinePlotterForACertainPlayer] = {
             i: OnlinePlotterForACertainPlayer(
                 title=f"[Player {i}] - {title}",
                 player_index=i,
@@ -237,7 +264,18 @@ class OnlinePlotterForNPlayers(OnlinePlotter):
         self,
         data_policy: DataPolicyToPlot,
     ):
-        for i in range(len(data_policy.joint_policy)):
+        if len(get_shape(data_policy.joint_policy)) == 2:
+            # If the joint_policy represents a joint policy (so a (n_players, n_action_per_players) shaped object), the number of players is the length of the joint policy
+            n_players = len(data_policy.joint_policy)
+        elif len(get_shape(data_policy.joint_policy)) == 3:
+            # If the joint_policy represents a list of joint policies (so a (n, n_players, n_action_per_players) shaped object), the number of players is the length of the first joint policy
+            n_players = len(data_policy.joint_policy[0])
+        else:
+            raise ValueError(
+                "The joint_policy should be a (n, n_players, n_action_per_players) shaped objects, or a (n_players, n_action_per_players) shaped object."
+            )
+
+        for i in range(n_players):
             self.player_idx_to_plotter[i].add_data_policy_to_plot(data_policy)
 
     def update_plot(self, force_update: bool = False):

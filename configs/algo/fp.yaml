@@ -1,4 +1,4 @@
-algo_name : fictitious_play
+algo_name : Fictitious Play
 algo_config :
   learning_rate : 0.5
   q_value_estimation_method : model-based
