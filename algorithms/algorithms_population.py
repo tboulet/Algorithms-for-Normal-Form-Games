@@ -8,12 +8,12 @@ from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 class PopulationBasedAlgorithm(BaseNFGAlgorithm):
     """A util class for all population based algorithms"""
 
-    def __init__(self, sampler_population : dict, population_averaging: str) -> None:
+    def __init__(self, sampler_population: dict, population_averaging: str) -> None:
         self.population_averaging = population_averaging
         self.sampler_population = sampler_population
         self.population = []
         self.kept_policies = []
-        
+
     def sample_policies(self) -> List[JointPolicy]:
         sampling_pop_method = self.sampler_population["method"]
         if sampling_pop_method == "random":
