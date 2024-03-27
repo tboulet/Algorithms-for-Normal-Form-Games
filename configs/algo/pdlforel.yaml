@@ -16,7 +16,7 @@ algo_config :
   do_linear_interpolation_mu : False
   alternate_lyap_pc : False
   eta_scheduler_config:
-    type : exponential    # use 'constant' if mu changes through training?
+    class_string : core.scheduler:Exponential   # use 'constant' if mu changes through training?
     start_value : 1
     end_value : 0.001
     n_steps : 50000
