@@ -1,0 +1,24 @@
+algo_name : pdl_forel
+algo_config :
+  # ForeL parameters
+  forel_config:
+    q_value_estimation_method : model-based
+    dynamics_method : rd
+    learning_rate_rd : 0.001
+    learning_rate_cum_values : 0.001
+    n_monte_carlo_q_evaluation : 20
+    regularizer : entropy
+  # Iterated FoReL Lyapunov parameters
+  n_timesteps_per_iterations : 50000
+  n_policies_to_sample: 10000
+  method_avg: arithmetic
+  do_mu_update : True
+  do_linear_interpolation_mu : False
+  alternate_lyap_pc : False
+  eta_scheduler_config:
+    type : exponential    # use 'constant' if mu changes through training?
+    start_value : 1
+    end_value : 0.001
+    n_steps : 50000
+    
+    
