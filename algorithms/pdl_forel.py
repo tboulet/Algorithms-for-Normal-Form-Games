@@ -9,6 +9,7 @@ from core.utils import to_numeric
 from games.base_nfg_game import BaseNFGGame
 from core.typing import JointPolicy
 from copy import deepcopy
+from core.utils import instantiate_class, to_numeric
 import random
 import statistics
 
@@ -53,7 +54,7 @@ class PDLForel(Forel):
         self.do_mu_update = do_mu_update
         self.do_linear_interpolation_mu = do_linear_interpolation_mu
         self.alternate_lyap_pc = alternate_lyap_pc
-        self.eta_scheduler = Scheduler(**eta_scheduler_config)
+        self.eta_scheduler: Scheduler = instantiate_class(config=eta_scheduler_config)
         #self.eta_scheduler.set_type("exponential")
         self.n_policies_to_sample = n_policies_to_sample
         self.list_policies = []
