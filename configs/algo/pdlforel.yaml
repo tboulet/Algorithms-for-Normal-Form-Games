@@ -11,7 +11,14 @@ algo_config :
   # Iterated FoReL Lyapunov parameters
   n_timesteps_per_iterations : 50000
   n_policies_to_sample: 10000
-  method_avg: arithmetic
+  population_averaging: arithmetic
+  sampler_population:
+    method : "random"
+    # method : "periodic"
+    # method : "last"
+    size_population : 100
+    n_last_policies_to_sample : 10000
+    distribution : "uniform"
   do_mu_update : True
   do_linear_interpolation_mu : False
   alternate_lyap_pc : False
