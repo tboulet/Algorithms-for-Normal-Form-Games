@@ -57,16 +57,16 @@ def main(config: DictConfig):
     game_config = config["game"]["game_config"]
     GameClass = game_name_to_nfg_solver[game_name]
     game = GameClass(**game_config)
-    n_players=game.num_players()
-    n_actions=game.num_distinct_actions()
-    
+    n_players = game.num_players()
+    n_actions = game.num_distinct_actions()
+
     # Get the initial joint policy if specified from the game config
     initial_joint_policy = try_get(config["game"], "initial_joint_policy", None)
     if initial_joint_policy is not None:
         assert len(initial_joint_policy) == n_players and all(
             len(initial_joint_policy[i]) == n_actions[i] for i in range(n_players)
         ), "The initial joint policy is not at the right format"
-    
+
     # Initialize the algorithm for learning in that game
     algo_name = config["algo"]["algo_name"]
     algo_config = config["algo"]["algo_config"]
