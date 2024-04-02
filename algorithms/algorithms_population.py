@@ -3,6 +3,7 @@ import numpy as np
 from typing import Any, Dict, List, Optional
 from core.typing import JointPolicy, Policy
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
+from core.metrics import get_distance_function
 
 
 class PopulationBasedAlgorithm(BaseNFGAlgorithm):
@@ -15,18 +16,20 @@ class PopulationBasedAlgorithm(BaseNFGAlgorithm):
         self.kept_policies = []
 
     def sample_policies(self) -> List[JointPolicy]:
+        n_last_policies_candidates = self.sampler_population[
+            "n_last_policies_to_sample"
+        ]
+        n_last_policies_candidates = (
+            n_last_policies_candidates
+            if n_last_policies_candidates is not None
+            else len(self.population)
+        )
+        candidates_policies = self.population[-n_last_policies_candidates:]
+
+        size_population = self.sampler_population["size_population"]
+
         sampling_pop_method = self.sampler_population["method"]
         if sampling_pop_method == "random":
-            n_last_policies_candidates = self.sampler_population[
-                "n_last_policies_to_sample"
-            ]
-            n_last_policies_candidates = (
-                n_last_policies_candidates
-                if n_last_policies_candidates is not None
-                else len(self.population)
-            )
-            candidates_policies = self.population[-n_last_policies_candidates:]
-            size_population = self.sampler_population["size_population"]
             if self.sampler_population["distribution"] == "uniform":
                 return random.sample(candidates_policies, size_population)
             elif self.sampler_population["distribution"] == "exponential":
@@ -37,27 +40,53 @@ class PopulationBasedAlgorithm(BaseNFGAlgorithm):
                 )
 
         elif sampling_pop_method == "periodic":
-            n_last_policies_candidates = self.sampler_population[
-                "n_last_policies_to_sample"
-            ]
-            n_last_policies_candidates = (
-                n_last_policies_candidates
-                if n_last_policies_candidates is not None
-                else len(self.population)
-            )
-            candidates_policies = self.population[-n_last_policies_candidates:]
-            size_population = self.sampler_population["size_population"]
             return candidates_policies[:: n_last_policies_candidates // size_population]
 
         elif sampling_pop_method == "last":
             return [self.population[-1]]
 
         elif sampling_pop_method == "greedy":
-            raise NotImplementedError("Greedy sampling not implemented yet")
+            distance = self.sampler_population["distance"]
+            distance_function = get_distance_function(distance)
+
+            candidates_policies = self.population[-n_last_policies_candidates:]
+            sampled_policies = [candidates_policies.pop()]
+
+            greedy_mode = self.sampler_population["greedy_mode"]
+
+            if greedy_mode == "to_average":
+                for _ in range(size_population - 1):
+                    average_policy = self.average_list_of_joint_policies(
+                        sampled_policies
+                    )
+                    distance_list = [
+                        distance_function(average_policy, policy)
+                        for policy in candidates_policies
+                    ]
+
+                    max_index = distance_list.index(max(distance_list))
+                    sampled_policies.append(candidates_policies.pop(max_index))
+
+                return sampled_policies
+
+            elif greedy_mode == "to_added_distance":
+                distance_list = [0] * len(candidates_policies)
+                for _ in range(size_population - 1):
+                    for i, policy in enumerate(candidates_policies):
+                        distance_list[i] += distance_function(
+                            sampled_policies[-1],
+                            policy,
+                        )
+                    max_index = distance_list.index(max(distance_list))
+
+                    sampled_policies.append(candidates_policies.pop(max_index))
+                    distance_list.pop(max_index)
+
+                return sampled_policies
 
         else:
             raise ValueError(
-                f"Unknown population_sampling method {self.population_sampling}"
+                f"Unknown population_sampling method {sampling_pop_method}"
             )
 
     def average_list_of_joint_policies(
