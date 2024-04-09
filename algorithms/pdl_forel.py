@@ -29,6 +29,7 @@ class PDLForel(LyapunovBasedAlgorithm,Forel,PopulationBasedAlgorithm,):
         eta_scheduler_config: dict,
         n_policies_to_sample: int,
         population_averaging: str,
+        n_last_policies_to_sample : int,
         alternate_lyap_pc: str
     ) -> None:
         """Initializes the Iterated FoReL algorithm.
@@ -50,6 +51,7 @@ class PDLForel(LyapunovBasedAlgorithm,Forel,PopulationBasedAlgorithm,):
                 - end_value (float): the final value of eta
                 - n_iterations (int): the number of iterations over which eta will decrease
             n_policies_to_sample (int) : number of policies to sample for the averaging operation
+            n_last_policies_to_sample (int): the number of last policies to sample
             method_avg (str) : can be 'arithmetic' or 'geometric', it is the type of average we use
             alternate_lyap_pc (str): indicates wether we follow an alternate lyapunov - Forel or basic lyapunov method
         """
@@ -58,6 +60,7 @@ class PDLForel(LyapunovBasedAlgorithm,Forel,PopulationBasedAlgorithm,):
             self,
             sampler_population=sampler_population,
             population_averaging=population_averaging,
+            n_last_policies_to_sample=n_last_policies_to_sample,
         )
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
         self.do_mu_update = do_mu_update

@@ -16,14 +16,25 @@ algo_config :
   # The method to use to update the population, either "geometric" or "arithmetic"
   population_averaging : "arithmetic"
 
+  # The number of policies to sample from last policies. If None/unspeficied, all policies will be candidates.
+  n_last_policies_to_sample : 10000
+
   # The sampler method and its configuration. Method is either "random", "periodic" or "last" (equivalent to I-FoReL)
   sampler_population:
-    method : "random"
-    # method : "periodic"
-    # method : "last"
-    size_population : 100
-    n_last_policies_to_sample : 10000
-    distribution : "uniform"
+
+    # Greedy : successively try to maximize the distance to the average of the already sampled population
+    method : "greedy"
+    # The size of the population sampled.
+    size_population : 10
+    # The method when using greedy sampling. Either "to_average" or "to_added distance".
+    greedy_mode: "to_average"
+    # Distance metric for distributions that is used for greedy sampling. Can either be "kl", "l1" or "l2"
+    distance: "kl"
+
+    # # Random : random sampling from the population
+    # method : "random"
+    # size_population : 10
+    # distribution: "uniform"  # The sampling distribution, only used if the method is "random". Is either "uniform" or "exponential".
 
 
 

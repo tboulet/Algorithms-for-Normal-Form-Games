@@ -25,6 +25,7 @@ class PopulationForel(
         forel_config: Dict[str, Any],
         # Population parameters
         population_averaging: str,
+        n_last_policies_to_sample : int,
         sampler_population: Dict[str, Any],
         # P-FoReL specific parameters
         population_timesteps_per_iterations: int,
@@ -40,16 +41,18 @@ class PopulationForel(
                 - learning_rate_cum_values (float): the learning rate used to update the cumulative values (only used if dynamics_method == "softmax")
                 - n_monte_carlo_q_evaluation (int): the number of episodes used to estimate the Q values
                 - regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
+            population_averaging (str): the type of averaging used to update the population (either "geometric" or "arithmetic")
+            n_last_policies_to_sample (int): the number of last policies to sample
+            sampler_population (Dict[str, Any]): the configuration of the population sampler.
             population_timesteps_per_iterations (int): the number of timesteps per iteration
             do_population_update (bool): whether to update the population at each iteration, or not
-            sampler_population (Dict[str, Any]): the configuration of the population sampler.
-            population_averaging (str): the type of averaging used to update the population (either "geometric" or "arithmetic")
         """
         Forel.__init__(self, **forel_config)
         PopulationBasedAlgorithm.__init__(
             self,
             sampler_population=sampler_population,
             population_averaging=population_averaging,
+            n_last_policies_to_sample=n_last_policies_to_sample,
         )
 
         self.population_timesteps_per_iterations = population_timesteps_per_iterations

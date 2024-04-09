@@ -25,6 +25,7 @@ class PopulationIteratedLyapunovForel(
         forel_config: Dict[str, Any],
         # Population parameters
         population_averaging: str,
+        n_last_policies_to_sample : int,
         sampler_population: Dict[str, Any],
         # PIL-FoReL specific parameters
         n_timesteps_per_iterations: int,
@@ -42,6 +43,7 @@ class PopulationIteratedLyapunovForel(
                 - regularizer (str): the regularizer function tag (for now either "entropy" or "l2")
             n_timesteps_per_iterations (int): the number of timesteps per iteration
             population_averaging (str): the type of averaging used to update the population (either "geometric" or "arithmetic")
+            n_last_policies_to_sample (int): the number of last policies to sample
             sampler_population (Dict[str, Any]): the configuration of the population sampler.
             eta_scheduler_config (dict): the configuration of the eta scheduler.
         """
@@ -50,6 +52,7 @@ class PopulationIteratedLyapunovForel(
             self,
             sampler_population=sampler_population,
             population_averaging=population_averaging,
+            n_last_policies_to_sample=n_last_policies_to_sample,
         )
         LyapunovBasedAlgorithm.__init__(self)
 

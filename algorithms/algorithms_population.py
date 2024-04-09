@@ -9,16 +9,20 @@ from core.metrics import get_distance_function
 class PopulationBasedAlgorithm(BaseNFGAlgorithm):
     """A util class for all population based algorithms"""
 
-    def __init__(self, sampler_population: dict, population_averaging: str) -> None:
+    def __init__(
+        self,
+        sampler_population: dict,
+        population_averaging: str,
+        n_last_policies_to_sample: int,
+    ) -> None:
         self.population_averaging = population_averaging
         self.sampler_population = sampler_population
+        self.n_last_policies_to_sample = n_last_policies_to_sample
         self.population = []
         self.kept_policies = []
 
     def sample_policies(self) -> List[JointPolicy]:
-        n_last_policies_candidates = self.sampler_population[
-            "n_last_policies_to_sample"
-        ]
+        n_last_policies_candidates = self.n_last_policies_to_sample
         n_last_policies_candidates = (
             n_last_policies_candidates
             if n_last_policies_candidates is not None

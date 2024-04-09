@@ -187,6 +187,8 @@ class Forel(BaseNFGAlgorithm):
         objects_to_log = {}
         for i in range(self.n_players):
             for a in range(self.n_actions[i]):
+                if not (i == 0 and a in [0, 1]):
+                    continue # only log X_0(a=0, 1) to limit the number of logs
                 objects_to_log[f"Q_{i}/Q_{i}(a={a})"] = self.joint_q_values[i][a]
                 objects_to_log[f"pi_{i}/pi_{i}(a={a})"] = self.joint_policy_pi[i][a]
                 objects_to_log[f"cum_values_{i}/cum_values_{i}(a={a})"] = self.joint_cumulative_values[i][a]

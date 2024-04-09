@@ -12,13 +12,23 @@ algo_config :
   n_timesteps_per_iterations : 50000
   n_policies_to_sample: 10000
   population_averaging: arithmetic
+  n_last_policies_to_sample : 10000
   sampler_population:
-    method : "random"
-    # method : "periodic"
-    # method : "last"
+
+    # Greedy : successively try to maximize the distance to the average of the already sampled population
+    method : "greedy"
+    # The size of the population sampled.
     size_population : 100
-    n_last_policies_to_sample : 10000
-    distribution : "uniform"
+    # The method when using greedy sampling. Either "to_average" or "to_added distance".
+    greedy_mode: "to_average"
+    # Distance metric for distributions that is used for greedy sampling. Can either be "kl", "l1" or "l2"
+    distance: "kl"
+
+    # # Random : random sampling from the population
+    # method : "random"
+    # size_population : 10
+    # distribution: "uniform"  # The sampling distribution, only used if the method is "random". Is either "uniform" or "exponential".
+  
   do_mu_update : True
   do_linear_interpolation_mu : False
   alternate_lyap_pc : False

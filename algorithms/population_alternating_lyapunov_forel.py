@@ -25,6 +25,7 @@ class PopulationAlternatingLyapunovForel(
         forel_config: Dict[str, Any],
         # Population parameters
         population_averaging: str,
+        n_last_policies_to_sample : int,
         sampler_population: Dict[str, Any],
         # PAL-FoReL specific parameters
         n_timesteps_pc_phase: int,
@@ -43,6 +44,7 @@ class PopulationAlternatingLyapunovForel(
             self,
             sampler_population=sampler_population,
             population_averaging=population_averaging,
+            n_last_policies_to_sample=n_last_policies_to_sample,
         )
         LyapunovBasedAlgorithm.__init__(self)
 
