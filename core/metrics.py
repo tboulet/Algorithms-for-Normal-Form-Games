@@ -1,6 +1,8 @@
 import numpy as np
-from typing import List
+from typing import Callable, List, Union
 from enum import Enum
+
+from core.typing import JointPolicy
 
 
 class DistributionDistance(str, Enum):
@@ -30,7 +32,7 @@ def l1_distance(joint_pi: List[np.ndarray], nash_pi: List[np.ndarray]) -> float:
     )
 
 
-def get_distance_function(distance_name: str | DistributionDistance = "kl"):
+def get_distance_function(distance_name: Union[str, DistributionDistance]) -> Callable[[JointPolicy, JointPolicy], float]:
     if not isinstance(distance_name, DistributionDistance):
         distance_name = DistributionDistance(distance_name)
 
