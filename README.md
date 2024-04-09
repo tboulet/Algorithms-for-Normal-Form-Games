@@ -34,9 +34,12 @@ python run.py algo=forel game=mp
 The algo tag should correspond to a configuration in ``configs/algo/`` where you can specify the algo and its hyperparameters. 
 
 Currently, the following algorithms are available:
- - `forel` : FoReL algorithm. At each step, it learns the Q values of each agent and each action using Monte Carlo sampling or model-based exact Q values extraction. Once the Q values are computed, it applies the FoReL rules.
- - `iforel` : Iterated FoReL Lyapunov algorithm. Apply FoReL iteratively, each iteration with the reward being modified by a regularization term that depends on the previous obtained policy.
  - `pg` : (Softmax) Policy Gradients : apply policy gradients on the policy of each agent, with the objective function being the expected advantage values.
+ - `forel` : FoReL algorithm. At each step, it learns the Q values of each agent and each action using Monte Carlo sampling or model-based exact Q values extraction. Once the Q values are computed, it applies the FoReL rules. This algorithm has been proven to cycle in Pointcaré Recurrent cycles for 0-sum games, this is the expected behavior.
+ - `iforel` : Iterated FoReL Lyapunov algorithm. Apply FoReL iteratively, each iteration with the reward being modified by a regularization term that depends on the previous obtained policy.
+ - `pop_forel` : A population version of FoReL. Every `population_timesteps_per_iterations` timesteps, a population of agents will be sampled from previous policies following a certain rule (random, periodic, greedy,...). Then the current policy will be placed at the average of those policies. This allows convergence as the time-averaged PC trajectory of FoReL converges provably to the NE. However this algorithm is only implemented for testing purposes and is not applicable in practice, given the unability to average trainable policies.
+ - `pil_forel` : Population Iterated Lyapunov FoReL : apply this population update on the $\mu$ regularization policy that appears in the Lyapunov regularization.
+ - `pal_forel` : Population Alternating Lyapunov FoReL : alternate between a "PC cycling" phase where the behavior is the same as FoReL, and a "Lyapunov" phase where the behavior is the same as Lyapunov FoReL. This is a way to combine the convergence properties of both algorithms, as the PC cycling phase will converge to the NE, and the Lyapunov phase will converge to the Lyapunov NE.
 
 ### Games
 
@@ -44,10 +47,11 @@ The game tag should correspond to a configuration in ``configs/game/`` where you
 
 Currently the following games are implemented :
 - `mp` : Matching Pennies. In this game, there are two agents and two actions. The first agent (Even) receive +1 if the actions are the same, -1 otherwise. The second agent (Odd) receive the opposite reward. The only Nash Equilibrium (NE) that exists is (1/2, 1/2)
-- `mp_bias` : a MP game biaised, where the joint action (0,0) gives rewards (4, -4) instead of (1, -1). The NE is thus slightly different.
+- `mp_bias` : a MP game biaised, where the joint action (0,0) gives rewards (4, -4) instead of (1, -1). The NE is thus slightly different and not trivially at (1/2, 1/2). We advise to benchmark on those "biased" games as they are preventing any convergence coming from the symmetry of the game.
 - `mp_bias_nonzero` : here, the (0,0) returns are (4, -1), which makes the game non-zero-sum.
 - `kuhn` : an NFG version of Kuhn Poker, where an action corresponds to choosing the contextual deterministic policy to be played: a ={pi(action|card) | action in A, card in S}
-- `rps` : Rock-Paper-Scissors game. The NE is (1/3, 1/3, 1/3). Not currently implemented.
+- `rps` : Rock-Paper-Scissors game. The NE is (1/3, 1/3, 1/3).
+- `rps_bias` : a RPS game biaised, where the joint action (0,1) gives rewards (4, -4) instead of (1, -1).
 
 
 We use Hydra as our config system. The config folder is `./configs/`. You can modify the config (logging, metrics, number of training episodes) from the `default_config.yaml` file. You can also create your own config file and specify it with the `--config-name` argument :
