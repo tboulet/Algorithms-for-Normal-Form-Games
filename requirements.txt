@@ -3,6 +3,7 @@ matplotlib
 tqdm
 wandb
 tensorboard
+tensorboardX
 
 # Code quality
 black
