@@ -12,7 +12,7 @@ do_wandb : True
 wandb_config:
   project : Algorithms-for-Normal-Form-Games
 plot_config :
-  do_plot_online : True
+  do_plot_online : False
   update_frequency : 1000
   pause_time : 0.001
 tqdm_bar : True

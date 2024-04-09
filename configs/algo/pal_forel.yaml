@@ -27,7 +27,7 @@ algo_config :
     # The size of the population sampled.
     size_population : 10
     # The method when using greedy sampling. Either "to_average" or "to_added_distance".
-    greedy_mode: "to_added distance"
+    greedy_mode: "to_average"
     # Distance metric for distributions that is used for greedy sampling. Can either be "kl", "l1" or "l2"
     distance: "kl"
 

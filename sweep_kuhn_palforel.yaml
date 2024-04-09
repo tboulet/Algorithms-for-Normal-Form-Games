@@ -1,0 +1,30 @@
+program: run.py 
+method: bayes
+metric:
+  goal: minimize
+  name: nash_conv
+
+parameters:
+  algo.algo_config.forel_config.learning_rate_rd:
+    min: 0.0001
+    max: 0.1
+    distribution: log_uniform
+
+  algo.algo_config.n_timesteps_pc_phase:
+    min: 1000
+    max: 50000
+    distribution: int_uniform
+
+  algo.algo_config.sampler_population.greedy_mode:
+    values: [to_average, to_added_distance]
+
+  algo.algo_config.sampler_population.distance:
+    values: [kl, l1, l2]
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - algo=pal_forel
+  - game=kuhn
+  - ${args_no_hyphens}
