@@ -15,6 +15,7 @@ plot_config :
   do_plot_online : False
   update_frequency : 1000
   pause_time : 0.001
+  do_plot_final : False
 tqdm_bar : True
 
 
