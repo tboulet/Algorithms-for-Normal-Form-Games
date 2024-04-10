@@ -171,10 +171,8 @@ def main(config: DictConfig):
                 plotter.add_data_policy_to_plot(data_policy_to_plot)
 
     # At the end of the run, show and save the plot of the dynamics
-    plotter.update_plot(force_update=True)
     plotter.save(path=f"logs/{run_name}/dynamics.png")
-    plotter.show()
-
+    plotter.try_final_plot()
     # Close the logging
     if do_tb:
         writer.close()

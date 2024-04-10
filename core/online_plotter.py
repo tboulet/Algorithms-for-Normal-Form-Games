@@ -36,6 +36,7 @@ class OnlinePlotter:
         do_plot_online: bool = True,
         update_frequency: int = 10000,
         pause_time: float = 0.01,
+        do_plot_final: bool = True,
     ):
         """Create an object to generate a 2D plot online and visualize it.
 
@@ -44,12 +45,14 @@ class OnlinePlotter:
             do_plot_online (bool, optional): Whether to plot. Defaults to True.
             update_frequency (int, optional): The frequency at which plot is updated with the 'points to plot'. Defaults to 10000.
             pause_time (float, optional): The pause time between each update. Defaults to 0.01.
+            do_plot_final (bool, optional): Whether to plot the final plot. Defaults to True.
         """
         self.title = title
         self.do_plot_online = do_plot_online
         self.update_frequency = update_frequency
         self.pause_time = pause_time
-
+        self.do_plot_final = do_plot_final
+        
         # Create plot memory objects
         self.name_dataPolicy_to_list_x_list_y: Dict[
             str, Tuple[List[float], List[float]]
@@ -142,7 +145,13 @@ class OnlinePlotter:
         plt.savefig(path)
         plt.close()
 
-
+    def try_final_plot(self):
+        """Try to plot the final plot."""
+        if self.do_plot_final:
+            self.update_plot(force_update=True)
+            self.show()
+            
+            
 class OnlinePlotterForACertainPlayer(OnlinePlotter):
     def __init__(
         self,
@@ -152,6 +161,7 @@ class OnlinePlotterForACertainPlayer(OnlinePlotter):
         do_plot_online: bool = True,
         update_frequency: int = 10000,
         pause_time: float = 0.01,
+        do_plot_final: bool = True,
     ):
         """Create an object to generate a 2D plot online and visualize it.
 
@@ -161,6 +171,7 @@ class OnlinePlotterForACertainPlayer(OnlinePlotter):
             do_plot_online (bool, optional): Whether to plot. Defaults to True.
             update_frequency (int, optional): The frequency at which plot is updated with the 'data policies to plot'. Defaults to 10000.
             pause_time (float, optional): The pause time between each update. Defaults to 0.01.
+            do_plot_final (bool, optional): Whether to plot the final plot. Defaults to True.
         """
 
         # Variables
@@ -168,6 +179,7 @@ class OnlinePlotterForACertainPlayer(OnlinePlotter):
         self.do_plot_online = do_plot_online
         self.update_frequency = update_frequency
         self.pause_time = pause_time
+        self.do_plot_final = do_plot_final
         self.player_index = player_index
         self.n_actions = n_actions
 
@@ -247,6 +259,7 @@ class OnlinePlotterForNPlayers(OnlinePlotter):
         do_plot_online: bool = True,
         update_frequency: int = 10000,
         pause_time: float = 0.01,
+        do_plot_final : bool = True,
     ):
         self.player_idx_to_plotter: Dict[int, OnlinePlotterForACertainPlayer] = {
             i: OnlinePlotterForACertainPlayer(
@@ -256,9 +269,11 @@ class OnlinePlotterForNPlayers(OnlinePlotter):
                 do_plot_online=do_plot_online,
                 update_frequency=update_frequency,
                 pause_time=pause_time,
+                do_plot_final=do_plot_final,
             )
             for i in range(n_players)
         }
+        self.do_plot_final = do_plot_final
 
     def add_data_policy_to_plot(
         self,
@@ -282,7 +297,12 @@ class OnlinePlotterForNPlayers(OnlinePlotter):
         for plotter in self.player_idx_to_plotter.values():
             plotter.update_plot(force_update=force_update)
 
-
+    def try_final_plot(self):
+        if self.do_plot_final:
+            for plotter in self.player_idx_to_plotter.values():
+                plotter.update_plot(force_update=True)
+            plotter.show()
+            
 def get_plotter(
     n_players: int,
     n_actions: List[int],
