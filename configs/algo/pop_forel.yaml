@@ -16,7 +16,7 @@ algo_config :
   population_averaging : "arithmetic"
 
   # The number of policies to sample from last policies. If None/unspeficied, all policies will be candidates.
-  n_last_policies_to_sample : 10000
+  n_last_policies_to_sample : ${algo.algo_config.population_timesteps_per_iterations}
 
   # The sampler method and its configuration. Method is either "random", "periodic", "greedy", or "last" (equivalent to I-FoReL)
   sampler_population:
