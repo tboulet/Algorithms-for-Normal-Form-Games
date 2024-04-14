@@ -122,17 +122,7 @@ class PDLForel(LyapunovBasedAlgorithm,Forel,PopulationBasedAlgorithm,):
     def get_n_policies_to_sample(self):
         return self.n_policies_to_sample
     
-    # def sample_policies(self,n_last_policies):
-    #     return random.sample(self.get_list_policies()[-n_last_policies:],self.get_n_policies_to_sample())
     
-    # def get_average_policies(self,policies):
-    #     if self.avg == "geometric":
-    #         avg_sampled_policy = np.array([statistics.geometric_mean([elt[0][0] for elt in policies]),statistics.geometric_mean([elt[1][0] for elt in policies])])
-    #     else:
-    #         avg_sampled_policy = np.array([statistics.mean([elt[0][0] for elt in policies]),statistics.mean([elt[1][0] for elt in policies])])
-    #     avg_counter_policy = np.array([1,1]) - avg_sampled_policy
-    #     return np.array([[avg_sampled_policy[0],avg_counter_policy[0]],[avg_sampled_policy[1],avg_counter_policy[1]]])
-
     def learn(
         self,
         joint_action: List[int],
