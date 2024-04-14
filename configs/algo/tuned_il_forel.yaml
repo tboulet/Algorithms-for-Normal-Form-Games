@@ -1,0 +1,22 @@
+algo_name : IL-Forel
+algo_config :
+
+  # ============ ForeL parameters ============
+  forel_config:
+    q_value_estimation_method : model-based
+    dynamics_method : rd
+    learning_rate_rd : 0.015
+    learning_rate_cum_values : 0.001
+    n_monte_carlo_q_evaluation : 20
+    regularizer : entropy
+
+  # ============ Iterated Lyapunov FoReL parameters ===========
+  n_timesteps_per_iterations : 500
+  do_mu_update : True
+  do_linear_interpolation_mu : False
+  eta_scheduler_config:
+    class_string : core.scheduler:Constant
+    value : 1
+  do_set_NE_as_init_mu : False  # use Nash equilibrium as initial mu (for experimental purposes)
+    
+    
