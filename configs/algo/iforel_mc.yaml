@@ -10,9 +10,8 @@ algo_config :
     n_monte_carlo_q_evaluation : 20
     regularizer : entropy
 
-    
   # ============ Iterated Lyapunov FoReL parameters ===========
-  n_timesteps_per_iterations : 2000
+  n_timesteps_per_iterations : 4000
   do_mu_update : True
   do_linear_interpolation_mu : False
   eta_scheduler_config:

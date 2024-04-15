@@ -15,12 +15,6 @@ parameters:
     max: 50000
     distribution: q_log_uniform_values
 
-  algo.algo_config.sampler_population.greedy_mode:
-    values: [to_average, to_added_distance]
-
-  algo.algo_config.sampler_population.distance:
-    values: [kl, l1, l2]
-
 command:
   - ${env}
   - python

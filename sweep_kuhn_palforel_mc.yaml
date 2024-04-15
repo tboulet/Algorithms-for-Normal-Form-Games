@@ -10,12 +10,12 @@ parameters:
     max: 0.1
     distribution: log_uniform_values
 
-  algo.algo_config.n_timesteps_per_iterations:
-    min: 500
+  algo.algo_config.n_timesteps_pc_phase:
+    min: 1000
     max: 50000
     distribution: q_log_uniform_values
 
-  algo.algo_config.eta_scheduler_config.value:
+  algo.algo_config.eta_scheduler_config.max_value:
     min: 0.01
     max: 10
     distribution: log_uniform_values
@@ -25,6 +25,6 @@ command:
   - python
   - ${program}
   - --config-name=benchmark
-  - algo=iforel
+  - algo=pal_forel_mc
   - game=kuhn
   - ${args_no_hyphens}

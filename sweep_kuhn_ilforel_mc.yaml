@@ -25,6 +25,6 @@ command:
   - python
   - ${program}
   - --config-name=benchmark
-  - algo=iforel
+  - algo=iforel_mc
   - game=kuhn
   - ${args_no_hyphens}
