@@ -24,7 +24,7 @@ command:
   - ${env}
   - python
   - ${program}
-  - --config-name=benchmark
+  - --config-name=sweep
   - algo=pal_forel_mc
   - game=kuhn
   - ${args_no_hyphens}
