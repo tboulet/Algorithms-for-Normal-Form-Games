@@ -34,13 +34,18 @@ class PopulationBasedAlgorithm(BaseNFGAlgorithm):
 
         sampling_pop_method = self.sampler_population["method"]
         if sampling_pop_method == "random":
-            if self.sampler_population["distribution"] == "uniform":
+            distribution = self.sampler_population.get("distribution", "uniform")
+            if distribution == "uniform":
                 return random.sample(candidates_policies, size_population)
-            elif self.sampler_population["distribution"] == "exponential":
+            elif distribution == "exponential":
                 c = len(candidates_policies)
                 weights = [2 ** (2 * x / c) for x in range(c)]
                 return random.choices(
                     candidates_policies, weights=weights, k=size_population
+                )
+            else:
+                raise ValueError(
+                    f"Unknown distribution {self.sampler_population['distribution']}"
                 )
 
         elif sampling_pop_method == "periodic":
