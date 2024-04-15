@@ -10,7 +10,7 @@ frequency_cli : 9990
 do_tb : False
 do_wandb : True
 wandb_config:
-  project : Algorithms-for-Normal-Form-Games Benchmark
+  project : Algorithms-for-Normal-Form-Games Sweep
 plot_config :
   do_plot_online : False
   update_frequency : 1000
