@@ -5,18 +5,36 @@ metric:
   name: nash_conv
 
 parameters:
-  algo.algo_config.forel_config.learning_rate_rd:
-    min: 0.0001
-    max: 0.1
+  algo.algo_config.forel_config.dynamics_method.learning_rate_rd:
+    min: 0.00001
+    max: 1
+    distribution: log_uniform_values
+
+  algo.algo_config.forel_config.q_value_estimation_method.method:
+    values: [mc, mc_inc]
+  
+  algo.algo_config.forel_config.q_value_estimation_method.n_monte_carlo_q_evaluation:
+    min: 1
+    max: 1000
+    distribution: q_log_uniform_values
+  
+  algo.algo_config.forel_config.q_value_estimation_method.learning_rate_q_values:
+    min: 0.00001
+    max: 1
     distribution: log_uniform_values
 
   algo.algo_config.n_timesteps_pc_phase:
+    min: 1000
+    max: 100000
+    distribution: q_log_uniform_values
+
+  algo.algo_config.n_timesteps_lyapunov_phase:
     min: 1000
     max: 50000
     distribution: q_log_uniform_values
 
   algo.algo_config.eta_scheduler_config.max_value:
-    min: 0.01
+    min: 0.001
     max: 10
     distribution: log_uniform_values
 
@@ -24,7 +42,7 @@ command:
   - ${env}
   - python
   - ${program}
-  - --config-name=sweep
+  - --config-name=sweep_mc
   - algo=pal_forel_mc
   - game=kuhn
   - ${args_no_hyphens}

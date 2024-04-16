@@ -1,0 +1,34 @@
+# Training configuration for inRL
+n_episodes_training: 1000000
+nash_computation_method : lagrangian
+seed: Null
+
+# Display information
+frequency_metric : 999
+do_cli : False
+frequency_cli : 9990
+do_tb : False
+do_wandb : True
+wandb_config:
+  project : Algorithms-for-Normal-Form-Games Sweep
+plot_config :
+  do_plot_online : False
+  update_frequency : 1000
+  pause_time : 0.001
+  do_plot_final : False
+tqdm_bar : True
+
+
+
+defaults:
+  - algo : forel
+  - game : mp_bias
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled 
+
+
+# Hydra config, do not change.
+hydra:
+  output_subdir: null
+  run:
+    dir: .
