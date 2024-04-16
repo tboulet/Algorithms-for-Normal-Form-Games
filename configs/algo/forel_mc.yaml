@@ -1,8 +1,39 @@
 algo_name : FoReL
 algo_config :
-  q_value_estimation_method : mc
-  dynamics_method : rd
-  learning_rate_rd : 0.001
-  learning_rate_cum_values : 0.001
-  n_monte_carlo_q_evaluation : 20
-  regularizer : entropy
+
+  forel_config:
+
+    # ============ Dynamics method ============
+    # The dynamic method and its configuration. Method is either "rd" or "softmax"
+    dynamics_method : 
+      
+      # Replicator Dynamics : update the dynamics using replicator dynamics
+      method : rd
+      # The learning rate for the replicator dynamics
+      learning_rate_rd : 0.001
+
+      # # Softmax : update the dynamics using softmax on the cumulative values
+      # # method : softmax
+      # # The learning rate for computing the cumulative values
+      # learning_rate_cum_values : 0.001
+      # # Regularizer : the regularizer to use for the FoReL algorithm. Can be "entropy" or "l2"
+      # regularizer : entropy
+
+    # ============ Q-value estimation method ============
+    # The q-value estimation method and its configuration. Method is either "mc", "mc_inc" or "model-based"
+    q_value_estimation_method : 
+
+      # Monte Carlo : estimate the q-values using Monte Carlo model free estimation
+      method : mc
+      # The number of Monte Carlo samples to use for q-value estimation
+      n_monte_carlo_q_evaluation : 20
+
+      # # Monte Carlo Incremental : estimate the q-values using Monte Carlo model free estimation with incremental updates
+      # method : mc_inc
+      # # The learning rate for the q-values
+      # learning_rate_q_values : 0.01
+
+      # Model-based : estimate the q-values using a learned model  
+      # method : model-based
+
+      

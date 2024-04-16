@@ -47,7 +47,7 @@ class PopulationIteratedLyapunovForel(
             sampler_population (Dict[str, Any]): the configuration of the population sampler.
             eta_scheduler_config (dict): the configuration of the eta scheduler.
         """
-        Forel.__init__(self, **forel_config)
+        Forel.__init__(self, forel_config)
         PopulationBasedAlgorithm.__init__(
             self,
             sampler_population=sampler_population,

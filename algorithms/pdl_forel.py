@@ -55,7 +55,7 @@ class PDLForel(LyapunovBasedAlgorithm,Forel,PopulationBasedAlgorithm,):
             method_avg (str) : can be 'arithmetic' or 'geometric', it is the type of average we use
             alternate_lyap_pc (str): indicates wether we follow an alternate lyapunov - Forel or basic lyapunov method
         """
-        super().__init__(**forel_config)
+        super().__init__(forel_config)
         PopulationBasedAlgorithm.__init__(
             self,
             sampler_population=sampler_population,

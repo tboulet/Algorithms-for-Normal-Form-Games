@@ -16,31 +16,18 @@ from core.typing import (
 class Forel(BaseNFGAlgorithm):
     def __init__(
         self,
-        q_value_estimation_method: QValueEstimationMethod,
-        dynamics_method: DynamicMethod,
-        learning_rate_rd: float,
-        learning_rate_cum_values: float,
-        n_monte_carlo_q_evaluation: int,
-        regularizer: Regularizer,
+        forel_config: Dict[str, any],
     ) -> None:
         """Initializes the Follow the Regularized Leader (FoReL) algorithm.
         This algorithm try to maximize an exploitation term that consist of a (potentially weighted) sum of the Q values and
         exploration terms that are the regularizers (e.g. the entropy)
 
         Args:
-            q_value_estimation_method (QValueEstimationMethod): the method used to estimate the Q values (either "mc" or "model-based")
-            dynamics_method (DynamicMethod): the method used to update the policy (either "softmax" or "rd" (Replicator Dynamics))
-            learning_rate_rd (float): the learning rate used to update the policy (only used if dynamics_method == "rd")
-            learning_rate_cum_values (float): the learning rate used to update the cumulative values (only used if dynamics_method == "softmax")
-            n_monte_carlo_q_evaluation (int): the number of episodes used to estimate the Q values
-            regularizer (Regularizer): the regularizer function tag (for now either "entropy" or "l2")
+            forel_config (Dict[str, any]): the configuration of the FoReL algorithm. It should contain the following keys:
+                dynamics_method (Dict[str, any]): the configuration of the dynamics method.
+                q_value_estimation_method (Dict[str, any]): the configuration of the Q value estimation method.
         """
-        self.q_value_estimation_method = q_value_estimation_method
-        self.dynamics_method = dynamics_method
-        self.learning_rate_rd = learning_rate_rd
-        self.learning_rate_cum_values = learning_rate_cum_values
-        self.n_monte_carlo_q_evaluation = n_monte_carlo_q_evaluation
-        self.regularizer = regularizer
+        self.forel_config = forel_config
         self.lyapunov = False
 
     # Interface methods
@@ -89,19 +76,24 @@ class Forel(BaseNFGAlgorithm):
             bool: True if the monte carlo evaluation is finished, False otherwise
 
         """
+        # Batch update : Q_t(a) = sum_{t=1}^{T} r_t
         for i in range(self.n_players):
             if self.joint_count_seen_actions[i][joint_action[i]] == 0:
                 self.joint_q_values[i][joint_action[i]] = rewards[i]
             else:
-                self.joint_q_values[i][joint_action[i]] += (
-                    rewards[i] - self.joint_q_values[i][joint_action[i]]
-                ) / (self.joint_count_seen_actions[i][joint_action[i]] + 1)
+                self.joint_q_values[i][joint_action[i]] += rewards[i]
             self.joint_count_seen_actions[i][joint_action[i]] += 1
-
         # Increment monte carlo q evaluation episode index
         self.monte_carlo_q_evaluation_episode_idx += 1
-        if self.monte_carlo_q_evaluation_episode_idx == self.n_monte_carlo_q_evaluation:
+        n_monte_carlo_q_evaluation = self.forel_config["q_value_estimation_method"][
+            "n_monte_carlo_q_evaluation"
+        ]
+        if self.monte_carlo_q_evaluation_episode_idx == n_monte_carlo_q_evaluation:
             self.monte_carlo_q_evaluation_episode_idx = 0
+            for i in range(self.n_players):
+                for a in range(self.n_actions[i]):
+                    if self.joint_count_seen_actions[i][a] > 0:
+                        self.joint_q_values[i][a] /= self.joint_count_seen_actions[i][a]
             return True
 
         return False
@@ -119,19 +111,25 @@ class Forel(BaseNFGAlgorithm):
             self.transform_q_value()
 
     def update_policy(self):
-        if self.dynamics_method == DynamicMethod.SOFTMAX:
+        dynamics_method = self.forel_config["dynamics_method"]["method"]
+        if dynamics_method == DynamicMethod.SOFTMAX:
             # Method 1 : pi_i = softmax(cum_values_i)
+            learning_rate_cum_values = self.forel_config["dynamics_method"][
+                "learning_rate_cum_values"
+            ]
+            regularizer = self.forel_config["dynamics_method"]["regularizer"]
             for i in range(self.n_players):
                 self.joint_cumulative_values[i] += (
-                    self.learning_rate_cum_values * self.joint_q_values[i]
+                    learning_rate_cum_values * self.joint_q_values[i]
                 )
                 self.joint_policy_pi[i] = self.optimize_regularized_objective_function(
                     cum_values=self.joint_cumulative_values[i],
-                    regularizer=self.regularizer,
+                    regularizer=regularizer,
                 )
 
-        elif self.dynamics_method == DynamicMethod.RD:
+        elif dynamics_method == DynamicMethod.RD:
             # Method 2 : Replicator Dynamics
+            learning_rate_rd = self.forel_config["dynamics_method"]["learning_rate_rd"]
             for i in range(self.n_players):
 
                 state_value = np.sum(
@@ -141,10 +139,13 @@ class Forel(BaseNFGAlgorithm):
                     self.joint_q_values[i] - state_value
                 )  # A_t(a) = Q_t(a) - V_t
                 self.joint_policy_pi[i] += (
-                    self.learning_rate_rd * advantage_values * self.joint_policy_pi[i]
+                    learning_rate_rd * advantage_values * self.joint_policy_pi[i]
                 )
                 # Normalize policy in case of numerical errors
                 self.joint_policy_pi[i] /= np.sum(self.joint_policy_pi[i])
+
+        else:
+            raise ValueError(f"Unknown dynamics_method : {dynamics_method}")
 
     def learn(
         self,
@@ -157,44 +158,68 @@ class Forel(BaseNFGAlgorithm):
         has_estimated_q_values = False
 
         # --- Estimate Q values ---
-        if self.q_value_estimation_method == QValueEstimationMethod.MC:
-            # Method 1 : MC evaluation
+        q_value_estimation_method = self.forel_config["q_value_estimation_method"][
+            "method"
+        ]
+        if q_value_estimation_method == QValueEstimationMethod.MONTE_CARLO_BATCHED:
+            # Batch MC evaluation : Q_t(a) = sum_{t=1}^{T} r_t
             has_estimated_q_values = self.monte_carlo_step(
                 joint_action=joint_action, rewards=rewards
             )
 
-        elif self.q_value_estimation_method == QValueEstimationMethod.MODEL_BASED:
-            # Method 2 : Model-based exact evaluation
+        elif q_value_estimation_method == QValueEstimationMethod.MONTE_CARLO_INCREMENTAL:
+            # Incremental MC evaluation : Q_t(a) += alpha * (r_t - Q_t(a))
+            learning_rate_q_values = self.forel_config["q_value_estimation_method"][
+                "learning_rate_q_values"
+            ]
+            for i in range(self.n_players):
+                if self.joint_count_seen_actions[i][joint_action[i]] == 0:
+                    self.joint_q_values[i][joint_action[i]] = rewards[i]
+                else:
+                    self.joint_q_values[i][
+                        joint_action[i]
+                    ] += learning_rate_q_values * (
+                        rewards[i] - self.joint_q_values[i][joint_action[i]]
+                    )
+                self.joint_count_seen_actions[i][joint_action[i]] += 1
+            has_estimated_q_values = True
+
+        elif q_value_estimation_method == QValueEstimationMethod.MODEL_BASED:
+            # Model-based extraction of Q values
             self.compute_model_based_q_values()
             has_estimated_q_values = True
 
         else:
             raise ValueError(
-                f"Unknown q_value_estimation_method : {self.q_value_estimation_method}"
+                f"Unknown q_value_estimation_method : {q_value_estimation_method}"
             )
 
         # --- Update the policy ---
         if has_estimated_q_values:
             self.update_policy()
 
-            # Increment timestep and reset the Q values and count seen actions
-            self.joint_q_values = [np.zeros(n_action) for n_action in self.n_actions]
-            self.joint_count_seen_actions = [
-                np.zeros(n_action) for n_action in self.n_actions
-            ]
+            # Increment timestep and in MC batch, reset the Q values and count seen actions
+            if q_value_estimation_method == QValueEstimationMethod.MONTE_CARLO_BATCHED:
+                self.joint_q_values = [
+                    np.zeros(n_action) for n_action in self.n_actions
+                ]
+                self.joint_count_seen_actions = [
+                    np.zeros(n_action) for n_action in self.n_actions
+                ]
             self.timestep += 1
 
         objects_to_log = {}
         for i in range(self.n_players):
             for a in range(self.n_actions[i]):
                 if not (i == 0 and a in [0, 1]):
-                    continue # only log X_0(a=0, 1) to limit the number of logs
+                    continue  # only log X_0(a=0, 1) to limit the number of logs
                 objects_to_log[f"Q_{i}/Q_{i}(a={a})"] = self.joint_q_values[i][a]
                 objects_to_log[f"pi_{i}/pi_{i}(a={a})"] = self.joint_policy_pi[i][a]
-                objects_to_log[f"cum_values_{i}/cum_values_{i}(a={a})"] = self.joint_cumulative_values[i][a]
-                
+                objects_to_log[f"cum_values_{i}/cum_values_{i}(a={a})"] = (
+                    self.joint_cumulative_values[i][a]
+                )
+
         return objects_to_log
-    
 
     def get_inference_policies(
         self,

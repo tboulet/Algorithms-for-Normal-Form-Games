@@ -39,7 +39,7 @@ class PopulationAlternatingLyapunovForel(
         In particular, mu is selected as the population's average policy of the last PC phase.
 
         """
-        Forel.__init__(self, **forel_config)
+        Forel.__init__(self, forel_config)
         PopulationBasedAlgorithm.__init__(
             self,
             sampler_population=sampler_population,

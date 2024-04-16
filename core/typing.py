@@ -12,7 +12,8 @@ class DynamicMethod(str, Enum):
 
 
 class QValueEstimationMethod(str, Enum):
-    MC = "mc"
+    MONTE_CARLO_BATCHED = "mc"
+    MONTE_CARLO_INCREMENTAL = "mc_inc"
     MODEL_BASED = "model-based"
 
 

@@ -1,8 +1,7 @@
 algo_name : FoReL
 algo_config :
-  q_value_estimation_method : model-based
-  dynamics_method : rd
-  learning_rate_rd : 0.1
-  learning_rate_cum_values : 0.001
-  n_monte_carlo_q_evaluation : 20
-  regularizer : entropy
+  dynamics_method : 
+    method : rd
+    learning_rate_rd : 0.1
+  q_value_estimation_method : 
+    method : model-based

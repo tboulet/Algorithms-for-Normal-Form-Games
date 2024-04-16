@@ -48,7 +48,7 @@ class IteratedForel(
                 - n_iterations (int): the number of iterations over which eta will decrease
             do_set_NE_as_init_mu (bool): whether to set the Nash equilibrium as the mu policy at the end of each iteration, or not (for experimental purposes)
         """
-        super().__init__(**forel_config)
+        super().__init__(forel_config)
         self.n_timesteps_per_iterations = to_numeric(n_timesteps_per_iterations)
         self.do_mu_update = do_mu_update
         self.do_linear_interpolation_mu = do_linear_interpolation_mu

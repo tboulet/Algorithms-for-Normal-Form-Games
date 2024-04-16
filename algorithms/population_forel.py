@@ -47,7 +47,7 @@ class PopulationForel(
             population_timesteps_per_iterations (int): the number of timesteps per iteration
             do_population_update (bool): whether to update the population at each iteration, or not
         """
-        Forel.__init__(self, **forel_config)
+        Forel.__init__(self, forel_config)
         PopulationBasedAlgorithm.__init__(
             self,
             sampler_population=sampler_population,
