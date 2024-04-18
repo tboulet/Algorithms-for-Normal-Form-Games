@@ -1,0 +1,20 @@
+# A config for the play_kuhn.py file
+
+seed : 
+n_games : 10
+player_paths:
+  - logs/joint_policy/policy_0.npy
+  - logs/joint_policy/policy_1.npy
+human_position : 0
+
+defaults:
+  - game : kuhn
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled 
+
+
+# Hydra config, do not change.
+hydra:
+  output_subdir: null
+  run:
+    dir: .

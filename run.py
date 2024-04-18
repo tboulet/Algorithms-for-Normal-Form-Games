@@ -19,6 +19,7 @@ from omegaconf import DictConfig, OmegaConf
 from algorithms.base_nfg_algorithm import BaseNFGAlgorithm
 
 # Project imports
+from core.save_and_load import save_joint_policy
 from core.utils import to_numeric, try_get, try_get_seed
 from core.typing import Policy, JointPolicy
 from core.online_plotter import DataPolicyToPlot, get_plotter
@@ -46,6 +47,7 @@ def main(config: DictConfig):
     wandb_config = config["wandb_config"]
     plot_config = config["plot_config"]
     tqdm_bar = config["tqdm_bar"]
+    do_save = config["do_save"]
 
     # Set the seeds
     random.seed(seed)
@@ -173,6 +175,14 @@ def main(config: DictConfig):
     # At the end of the run, show and save the plot of the dynamics
     plotter.save(path=f"logs/{run_name}/dynamics.png")
     plotter.try_final_plot()
+    # Save the final joint policy
+    joint_policy_pi = algo.get_inference_policies()
+    if do_save:
+        save_joint_policy(
+            joint_policy=joint_policy_pi,
+            paths=[f"logs/{run_name}/joint_policy", f"logs/joint_policy"],
+            verbose=True,
+        )
     # Close the logging
     if do_tb:
         writer.close()

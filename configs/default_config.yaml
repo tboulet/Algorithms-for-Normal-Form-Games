@@ -17,6 +17,7 @@ plot_config :
   pause_time : 0.001
   do_plot_final : True
 tqdm_bar : True
+do_save : True
 
 
 
