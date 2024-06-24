@@ -1,6 +1,10 @@
 # Algorithms for Normal Form Games
 
-This is a research repository for doing research on MARL algorithms for Normal Form Games. It is based on PyTorch.
+This is a research repository for doing research on MARL algorithms for Normal Form Games. We developed PAL-FoReL, a Population-based extension of the SOTA algorithm Iterated Lyapunov FoReL that showed clear improvement in the speed of convergence, by a factor of $10^{13}$. Our report can be accessed at the [Project report](Project%20report.pdf) file of this repo.
+
+<p align="center">
+  <img src="assets/mp_b_palforel.png" alt="Title" width="60%"/>
+</p>
 
 # Installation
 
@@ -65,25 +69,48 @@ Advice : create an alias for the command above this.
 
 # Visualization 
 
+### Policies trajectory plot
+
 The policies will be plot online during the training, every `frequency_plot` episodes, on a 2D plot. 
 
 For 2-players 2-actions games, the x axis represent the probability of agent 0 to play action 0, and the y axis represent the probability of agent 1 to play action 0. This defines entirely the joint policy of the two agents.
 
+### Nash Conv metric
+
+The Nash Conv metric is a measure of the distance between the current policy and the nearest Nash Equilibrium, which is a desired convergence point. This metrics among other are logged in tensorboard (in the `./tensorboard` folder, and can be visualized with the following command) and/or WandB depending on the configuration.
+
+```bash
+tensorboard --logdir tensorboard
+```
+
 
 # Results
 
-### Behavior of FoReL 
+### Policies trajectory plot
 
-Expected behavior : FoReL should PC cycles (i.e. should be Poincarré Recurrent) for any 0-sum games.
+We show here the policies trajectory of the different game theory algorithms on a (biased) Matching Pennies game. The only Nash Equilibrium is (2/7, 2/7).
 
-For 0-sum games :
-- Using `rd` (Replicator Dynamics) as the policy update rule :
-    - Using `mc` (Monte Carlo sampling) as the Q value update rule : PC cycles.
-    - Using `model-based` (exact Q values extraction from the game) as the Q value update rule : FoReL cycles but slowly increase the radius of the cycle, so technically diverges.
-- Using `softmax` (Softmax of the cumulative values) as the policy update rule : FoReL diverges in both cases
+FoReL :
+<p align="center">
+  <img src="assets/mp_b_forel.png" alt="Title" width="60%"/>
+</p>
 
-For non-0-sum games (e.g. `mp_bias_nonzero`) :
-- Using `rd` as the policy update rule :
-    - Using `mc` : cycle, but seems to reduces/increases slowly the radius of the cycle (unclear)
-    - Using `model-based` : diverges slowly around a different point than the NE
-- Using `softmax` as the policy update rule : diverges 
+IL-FoReL :
+<p align="center">
+  <img src="assets/mp_b_iforel.png" alt="Title" width="60%"/>
+</p>
+
+PAL-FoReL :
+<p align="center">
+  <img src="assets/mp_b_palforel.png" alt="Title" width="60%"/>
+</p>
+
+### Nash Conv metric 
+
+We show here in log-scale the Nash Conv metric of the different game theory algorithms, including the previously SOTA algorithm IL-FoReL (orange) and our Population-based extension PAL-FoReL (green). We can see that PAL-FoReL converges much faster than IL-FoReL, by a factor of $10^{13}$.
+
+
+
+<p align="center">
+  <img src="assets/results.jpg" alt="Title" width="100%"/>
+</p>
